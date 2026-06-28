@@ -60,6 +60,7 @@ import {
 import { avatarLook, drawAvatar, drawEventItem, drawPerson, drawPet, drawRoom, drawStation, type AvatarFacing } from "./sprites";
 import { createUI, type UIRefs } from "./ui";
 import { generateStory, type CauseOfEnd, type LifeStory } from "./story";
+import { linePool } from "./messages";
 
 // Room dimensions are NOT fixed: they switch between a tall portrait shape and a
 // wide-short landscape shape (setRoomDims) so the playfield fills the screen in
@@ -137,7 +138,7 @@ const LIFE_SPEED_DEFAULT_INDEX = LIFE_SPEEDS.indexOf(1);
 const LIFE_SPEED_MIN_INDEX = 0;
 const LIFE_SPEED_MAX_INDEX = LIFE_SPEEDS.length - 1;
 const HERITAGE_OPTIONS: { id: HeritageStyle; label: string; icon: string }[] = [
-  { id: "western", label: "Western / current", icon: "🌎" },
+  { id: "western", label: "Western", icon: "🌎" },
   { id: "asian", label: "Asian", icon: "🏮" },
   { id: "middleEastern", label: "Middle Eastern", icon: "🕌" },
   { id: "black", label: "Black / African diaspora", icon: "🌍" },
@@ -1328,6 +1329,8 @@ export class Game {
   // a transient banner shown in the sky area after you interact with a person:
   // a nice descriptive line (text) + the point changes (sub)
   private skyMessage: { text: string; sub?: string; color: string; timer: number } | null = null;
+  // rotating flavor-line cursor, keyed per person-kind / item-id (cosmetic)
+  private lineIndex: Record<string, number> = {};
   private floats: FloatText[] = [];
   private focusIndex = -1;
 
@@ -1545,6 +1548,7 @@ export class Game {
 
   private newGame(keepBiography = false, startStageIndex = 0, familyFundOverride?: number): void {
     if (!keepBiography) this.biography = null; // normal play is never a replay
+    this.lineIndex = {}; // restart the rotating greeting / pickup lines
     const startIndex = keepBiography ? 0 : this.normalizeStageIndex(startStageIndex);
     this.stats = { ...START_STATS };
     this.age = 0;
@@ -2014,7 +2018,7 @@ export class Game {
   }
 
   private heritageLabel(): string {
-    return HERITAGE_OPTIONS.find((o) => o.id === this.heritage)?.label ?? "Western / current";
+    return HERITAGE_OPTIONS.find((o) => o.id === this.heritage)?.label ?? "Western";
   }
 
   /** The chapter gate is open once you're old enough — or always, when replaying
@@ -3299,7 +3303,7 @@ export class Game {
       if (st.opt.category === "food") {
         this.floats.push({ x: st.x, y: st.y - 52, text: `${st.opt.icon} stored`, color: "#9fe870", life: 1.1 });
         this.skyMessage = {
-          text: `${st.opt.icon} ${st.opt.desc || st.opt.label}`,
+          text: `${st.opt.icon} ${this.cycledLine(st.opt)}`,
           sub: "📦 stored · swipe ↑ to eat or give",
           color: "#bfe0ff",
           timer: 3,
@@ -3854,6 +3858,17 @@ export class Game {
    * After interacting with a person (via Collect / SPACE), announce who you met
    * and the point changes as a banner in the sky — the social-reaction feedback.
    */
+  /** The next rotating flavor line for a person (by kind) or item (by id), looping;
+   *  falls back to the option's own desc when no lines are defined for it. */
+  private cycledLine(opt: LifeOption): string {
+    const pool = linePool(opt.person, opt.id);
+    if (!pool || !pool.length) return (opt.desc || opt.label || "").trim();
+    const key = opt.person ? "p:" + opt.person : "i:" + opt.id;
+    const i = this.lineIndex[key] ?? 0;
+    this.lineIndex[key] = i + 1;
+    return pool[i % pool.length];
+  }
+
   private showOptionSky(opt: LifeOption, before: { health: number; happiness: number; fun: number; smarts: number; money: number }, overrideText?: string): void {
     const parts: string[] = [];
     const add = (now: number, was: number, icon: string): void => {
@@ -3866,7 +3881,7 @@ export class Game {
     add(this.stats.smarts, before.smarts, "🧠");
     const dMoney = Math.round(this.money - before.money);
     if (dMoney !== 0) parts.push(`💰${dMoney > 0 ? "+" : "-"}${formatMoney(Math.abs(dMoney)).replace("$", "")}`);
-    const desc = (opt.desc || opt.label || "Nice to see you.").trim();
+    const desc = overrideText ? "" : this.cycledLine(opt);
     const good = this.stats.happiness - before.happiness + (this.stats.health - before.health) >= 0;
     this.skyMessage = {
       text: overrideText || `${opt.icon} ${desc}`,

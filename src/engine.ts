@@ -1325,6 +1325,8 @@ export class Game {
   private usedOnce = new Set<string>();
   private stations: Station[] = [];
   private people: Station[] = []; // cached person stations (block bad items)
+  // a transient banner shown in the sky area after you interact with a person
+  private skyMessage: { text: string; color: string; timer: number } | null = null;
   private floats: FloatText[] = [];
   private focusIndex = -1;
 
@@ -1599,6 +1601,7 @@ export class Game {
     this.smartsSum = 0;
     this.healthCount = 0;
     this.floats = [];
+    this.skyMessage = null;
     this.story = null;
     this.renderInventory();
     this.sampleHealth();
@@ -2286,7 +2289,20 @@ export class Game {
     }
     this.cooldown = 0.28;
     this.markGuideSeen();
-    this.applyOption(opt);
+    if (st.kind === "person") {
+      // interacting with a person → announce who + the point change in the sky
+      const before = {
+        health: this.stats.health,
+        happiness: this.stats.happiness,
+        fun: this.stats.fun,
+        smarts: this.stats.smarts,
+        money: this.money,
+      };
+      this.applyOption(opt);
+      this.showPersonSky(opt, before);
+    } else {
+      this.applyOption(opt);
+    }
   }
 
   /**
@@ -2928,6 +2944,7 @@ export class Game {
       : null;
     this.history = this.history.slice(0, snap.historyLen);
     this.floats = [];
+    this.skyMessage = null;
     this.clearOverlay();
     this.loadStage(stageIndex, true); // restoring: don't re-sample/re-snapshot the entry
     this.hint(`⏳ You travelled back to age ${Math.floor(this.age)}.`);
@@ -2955,6 +2972,11 @@ export class Game {
     if (this.hintTimer > 0) {
       this.hintTimer -= dt;
       if (this.hintTimer <= 0) this.ui.hint.textContent = "";
+    }
+
+    if (this.skyMessage) {
+      this.skyMessage.timer -= dt;
+      if (this.skyMessage.timer <= 0) this.skyMessage = null;
     }
 
     // floats animate in every mode
@@ -3621,6 +3643,31 @@ export class Game {
     }
     ctx.globalAlpha = 1;
 
+    // sky-area feedback banner — who you just met + how your points moved
+    if (inRoom && this.skyMessage) {
+      const m = this.skyMessage;
+      const alpha = Math.max(0, Math.min(1, m.timer / 0.45));
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.font = "bold 21px 'Trebuchet MS', system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const tw = ctx.measureText(m.text).width;
+      const bw = Math.min(W - 20, tw + 34);
+      const bh = 34;
+      const bx = (W - bw) / 2;
+      const by = 12;
+      const cr = ctx as CanvasRenderingContext2D & { roundRect?: (x: number, y: number, w: number, h: number, r: number) => void };
+      ctx.beginPath();
+      if (cr.roundRect) cr.roundRect(bx, by, bw, bh, 16);
+      else ctx.rect(bx, by, bw, bh);
+      ctx.fillStyle = "rgba(14, 9, 28, 0.82)";
+      ctx.fill();
+      ctx.fillStyle = m.color;
+      ctx.fillText(m.text, W / 2, by + bh / 2 + 1);
+      ctx.restore();
+    }
+
     this.renderHud();
   }
 
@@ -3683,6 +3730,13 @@ export class Game {
     this.ui.settingsBtn.style.display = playing ? "flex" : "none";
     this.ui.skipBtn.style.display = playing ? "flex" : "none";
     this.ui.touchWrap.style.visibility = playing ? "" : "hidden";
+    // light up Collect when there's a person / desk / gate to interact with
+    const nearGate =
+      (this.canShowTrainingGate() && this.nearTrainingGate()) ||
+      (this.canShowAssetsGate() && this.nearAssetsGate()) ||
+      (this.canShowFamilyTreeGate() && this.nearFamilyTreeGate()) ||
+      (this.doorOpen() && this.px > DOOR_X - 36 && this.nearGate());
+    this.ui.collectBtn.dataset.ready = playing && (this.focusIndex >= 0 || nearGate) ? "true" : "false";
   }
 
   private renderFocusPanel(): void {
@@ -3752,6 +3806,32 @@ export class Game {
   private hint(text: string): void {
     this.ui.hint.textContent = text;
     this.hintTimer = 1.6;
+  }
+
+  /** Show a transient banner in the sky area at the top of the play field. */
+  private showSky(text: string, color: string): void {
+    this.skyMessage = { text, color, timer: 2.6 };
+  }
+
+  /**
+   * After interacting with a person (via Collect / SPACE), announce who you met
+   * and the point changes as a banner in the sky — the social-reaction feedback.
+   */
+  private showPersonSky(opt: LifeOption, before: { health: number; happiness: number; fun: number; smarts: number; money: number }): void {
+    const parts: string[] = [];
+    const add = (now: number, was: number, icon: string): void => {
+      const d = Math.round(now - was);
+      if (d !== 0) parts.push(`${icon}${d > 0 ? "+" : ""}${d}`);
+    };
+    add(this.stats.health, before.health, "❤️");
+    add(this.stats.happiness, before.happiness, "😊");
+    add(this.stats.fun, before.fun, "🎉");
+    add(this.stats.smarts, before.smarts, "🧠");
+    const dMoney = Math.round(this.money - before.money);
+    if (dMoney !== 0) parts.push(`💰${dMoney > 0 ? "+" : "-"}${formatMoney(Math.abs(dMoney)).replace("$", "")}`);
+    const name = (opt.label || "someone").replace(/\s*\(.*\)\s*/, "").trim();
+    const good = this.stats.happiness - before.happiness + (this.stats.health - before.health) >= 0;
+    this.showSky(`${opt.icon} ${name}  ${parts.join("  ") || "nice to see you"}`, good ? "#bdf0c6" : "#ffb3c0");
   }
 
   /** Apply the saved day/night theme to the document + refresh the toggle glyph. */
@@ -5545,6 +5625,13 @@ export class Game {
     this.ui.settingsBtn.addEventListener("click", () => this.showSettings());
     this.ui.skipBtn.addEventListener("click", () => this.skipStage());
     this.ui.themeBtn.addEventListener("click", () => this.toggleTheme());
+    // Collect / interact button — same as pressing SPACE (acts on the focused
+    // person / desk / gate). pointerdown so touch feels instant.
+    this.ui.collectBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      this.actQueued = true;
+    });
+    this.ui.collectBtn.addEventListener("contextmenu", (e) => e.preventDefault());
   }
 }
 

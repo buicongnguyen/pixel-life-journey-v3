@@ -32,6 +32,7 @@ export interface UIRefs {
   stickKnob: HTMLElement;
   inventoryWrap: HTMLElement;
   inventoryTrack: HTMLElement;
+  collectBtn: HTMLElement;
   overlay: HTMLElement;
 }
 
@@ -160,7 +161,11 @@ export function createUI(mount: HTMLElement): UIRefs {
   inventoryWrap.title = "Swipe left/right to select. Swipe up to eat food, or near a person to give.";
   const inventoryTrack = el("div", "plj-inventory-track");
   inventoryWrap.append(inventoryTrack);
-  touchWrap.append(stick, inventoryWrap);
+  // a Collect / interact button — walk up to a person (or a desk/gate) and press
+  // it to interact; the result shows as a banner up in the sky
+  const collectBtn = el("button", "plj-collect-btn", "<span class='plj-collect-ic'>🤝</span><span class='plj-collect-lbl'>Collect</span>");
+  collectBtn.title = "Collect / interact (or press SPACE)";
+  touchWrap.append(stick, inventoryWrap, collectBtn);
   // the touch controls live INSIDE the stage so they overlay the canvas (thumbs
   // on the game), keeping everything on one mobile screen with no page scroll
   stage.append(touchWrap);
@@ -195,6 +200,7 @@ export function createUI(mount: HTMLElement): UIRefs {
     stickKnob,
     inventoryWrap,
     inventoryTrack,
+    collectBtn,
     overlay,
   };
 }

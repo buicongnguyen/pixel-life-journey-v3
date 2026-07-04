@@ -416,14 +416,14 @@ const STAGE_PROFILES: BodyProfile[] = [
   { heightPx: 96, headRatio: 0.35, chub: 0.5, baby: false, child: true, elder: false }, // toddler
   { heightPx: 112, headRatio: 0.32, chub: 0.42, baby: false, child: true, elder: false }, // early
   { heightPx: 128, headRatio: 0.295, chub: 0.32, baby: false, child: true, elder: false }, // elementary
-  { heightPx: 142, headRatio: 0.27, chub: 0.24, baby: false, child: false, elder: false }, // middle
-  { heightPx: 154, headRatio: 0.252, chub: 0.18, baby: false, child: false, elder: false }, // high
-  { heightPx: 164, headRatio: 0.24, chub: 0.15, baby: false, child: false, elder: false }, // university
-  { heightPx: 170, headRatio: 0.232, chub: 0.15, baby: false, child: false, elder: false }, // career
-  { heightPx: 170, headRatio: 0.232, chub: 0.18, baby: false, child: false, elder: false }, // marriage
-  { heightPx: 166, headRatio: 0.238, chub: 0.24, baby: false, child: false, elder: false }, // midlife
-  { heightPx: 158, headRatio: 0.25, chub: 0.3, baby: false, child: false, elder: true }, // senior
-  { heightPx: 150, headRatio: 0.258, chub: 0.32, baby: false, child: false, elder: true }, // retirement
+  { heightPx: 142, headRatio: 0.25, chub: 0.24, baby: false, child: false, elder: false }, // middle
+  { heightPx: 154, headRatio: 0.23, chub: 0.18, baby: false, child: false, elder: false }, // high
+  { heightPx: 164, headRatio: 0.213, chub: 0.15, baby: false, child: false, elder: false }, // university
+  { heightPx: 170, headRatio: 0.2, chub: 0.15, baby: false, child: false, elder: false }, // career (~5.3 heads tall)
+  { heightPx: 170, headRatio: 0.2, chub: 0.18, baby: false, child: false, elder: false }, // marriage
+  { heightPx: 166, headRatio: 0.207, chub: 0.24, baby: false, child: false, elder: false }, // midlife
+  { heightPx: 158, headRatio: 0.222, chub: 0.3, baby: false, child: false, elder: true }, // senior
+  { heightPx: 150, headRatio: 0.233, chub: 0.32, baby: false, child: false, elder: true }, // retirement
 ];
 
 interface HeritagePalette {
@@ -678,9 +678,9 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
   const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
   const torsoH = (H - headH - neckH) * (look.child ? 0.46 : 0.44); // legs a touch shorter — real torso:leg ratio
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
-  const shoulderW = headW * (female ? 1.17 : 1.26) + look.chub * headW * 0.06;
-  const waistW = shoulderW * (female ? 0.68 : 0.74);
-  const hipW = shoulderW * (female ? 1.0 : 0.82);
+  const shoulderW = headW * (female ? 1.24 : 1.34) + look.chub * headW * 0.06;
+  const waistW = shoulderW * (female ? 0.6 : 0.78); // hourglass her, straight him
+  const hipW = shoulderW * (female ? 1.06 : 0.84);
   const legW = H * (0.052 + look.chub * 0.016);
   const armW = H * (0.039 + look.chub * 0.01);
 
@@ -783,7 +783,7 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
 
   // --- neck ----------------------------------------------------------------
   ctx.fillStyle = skinD;
-  ctx.fillRect(cx - neckH * 0.42, torsoTopY - neckH + 1, neckH * 0.84, neckH + headH * 0.12);
+  ctx.fillRect(cx - neckH * 0.34, torsoTopY - neckH + 1, neckH * 0.68, neckH + headH * 0.12);
   ellipse(ctx, cx, neckTopY + neckH * 0.3, neckH * 0.5, neckH * 0.4, skin);
 
   // --- head: cheekbones, ears and a small chin instead of a plain oval ------
@@ -1083,9 +1083,9 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
   const torsoH = (H - headH - neckH) * (look.child ? 0.46 : 0.44); // legs a touch shorter — real torso:leg ratio
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
-  const shoulderW = headW * (female ? 1.17 : 1.26) + look.chub * headW * 0.06;
-  const waistW = shoulderW * (female ? 0.68 : 0.74);
-  const hipW = shoulderW * (female ? 1.0 : 0.82);
+  const shoulderW = headW * (female ? 1.24 : 1.34) + look.chub * headW * 0.06;
+  const waistW = shoulderW * (female ? 0.6 : 0.78); // hourglass her, straight him
+  const hipW = shoulderW * (female ? 1.06 : 0.84);
   // a real body has DEPTH in profile — the old 0.54-0.58 widths read paper-thin
   const sideShoulderW = shoulderW * 0.74;
   const sideWaistW = waistW * 0.76;
@@ -1269,9 +1269,9 @@ function drawBackStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
   const torsoH = (H - headH - neckH) * (look.child ? 0.46 : 0.44); // legs a touch shorter — real torso:leg ratio
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
-  const shoulderW = headW * (female ? 1.15 : 1.24) + look.chub * headW * 0.06;
-  const waistW = shoulderW * (female ? 0.68 : 0.74);
-  const hipW = shoulderW * (female ? 0.98 : 0.82);
+  const shoulderW = headW * (female ? 1.22 : 1.32) + look.chub * headW * 0.06;
+  const waistW = shoulderW * (female ? 0.6 : 0.78);
+  const hipW = shoulderW * (female ? 1.04 : 0.84);
   const legW = H * (0.052 + look.chub * 0.016);
   const armW = H * (0.039 + look.chub * 0.01);
   const hipY = baseY - legH;
@@ -1325,7 +1325,7 @@ function drawBackStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   drawHand(ctx, cx + shoulderW * 0.52 - stride * 0.45, handY, armW * 0.9, armW * 0.78, look.skin, 1, 0.06);
 
   ctx.fillStyle = shade(look.skin, 20);
-  ctx.fillRect(cx - neckH * 0.36, torsoTopY - neckH + 1, neckH * 0.72, neckH + headH * 0.08);
+  ctx.fillRect(cx - neckH * 0.3, torsoTopY - neckH + 1, neckH * 0.6, neckH + headH * 0.08);
 
   drawBackHead(ctx, headCx, headCy, headW, headH, look);
 

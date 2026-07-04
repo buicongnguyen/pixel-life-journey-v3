@@ -1066,9 +1066,10 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const shoulderW = headW * (female ? 1.17 : 1.26) + look.chub * headW * 0.06;
   const waistW = shoulderW * (female ? 0.68 : 0.74);
   const hipW = shoulderW * (female ? 1.0 : 0.82);
-  const sideShoulderW = shoulderW * 0.54;
-  const sideWaistW = waistW * 0.58;
-  const sideHipW = hipW * 0.58;
+  // a real body has DEPTH in profile — the old 0.54-0.58 widths read paper-thin
+  const sideShoulderW = shoulderW * 0.74;
+  const sideWaistW = waistW * 0.76;
+  const sideHipW = hipW * 0.72;
   const legW = H * (0.052 + look.chub * 0.016);
   const armW = H * (0.039 + look.chub * 0.01);
   const hipY = baseY - legH;
@@ -1435,7 +1436,7 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   const top = hcy - hh / 2;
   const hair = look.hair;
   const hairL = tint(hair, 28);
-  const headRx = hw * 0.48;
+  const headRx = hw * 0.55; // skulls are DEEPER than wide in profile
   const headRy = hh * 0.5;
   const hg = ctx.createRadialGradient(hcx - dir * hw * 0.12, hcy - hh * 0.2, hw * 0.12, hcx, hcy, hw * 0.68);
   hg.addColorStop(0, tint(skin, 10));
@@ -1445,13 +1446,13 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.fillStyle = hg;
   ctx.beginPath();
   // profile with a SMALL nose bump (an earlier 1.12× bump read as a bird beak)
-  ctx.moveTo(hcx - dir * headRx * 0.62, hcy + headRy * 0.1);
-  ctx.quadraticCurveTo(hcx - dir * headRx * 0.6, hcy - headRy * 0.82, hcx + dir * headRx * 0.04, hcy - headRy * 0.98);
+  ctx.moveTo(hcx - dir * headRx * 0.76, hcy + headRy * 0.08);
+  ctx.quadraticCurveTo(hcx - dir * headRx * 0.78, hcy - headRy * 0.84, hcx + dir * headRx * 0.02, hcy - headRy * 0.98);
   ctx.quadraticCurveTo(hcx + dir * headRx * 0.66, hcy - headRy * 0.9, hcx + dir * headRx * 0.78, hcy - headRy * 0.23);
   ctx.quadraticCurveTo(hcx + dir * headRx * 0.92, hcy - headRy * 0.06, hcx + dir * headRx * 0.8, hcy + headRy * 0.12);
   ctx.quadraticCurveTo(hcx + dir * headRx * 0.84, hcy + headRy * 0.31, hcx + dir * headRx * 0.56, hcy + headRy * 0.38);
   ctx.quadraticCurveTo(hcx + dir * headRx * 0.42, hcy + headRy * 0.56, hcx + dir * headRx * 0.04, hcy + headRy * 0.68);
-  ctx.quadraticCurveTo(hcx - dir * headRx * 0.46, hcy + headRy * 0.6, hcx - dir * headRx * 0.62, hcy + headRy * 0.1);
+  ctx.quadraticCurveTo(hcx - dir * headRx * 0.5, hcy + headRy * 0.62, hcx - dir * headRx * 0.76, hcy + headRy * 0.08);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = OUTLINE;
@@ -1466,7 +1467,10 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.stroke();
   // a real ear ON the head, just behind centre (it used to hang off the very
   // back of the skull like a knob)
-  drawEar(ctx, hcx - dir * hw * 0.18, hcy + hh * 0.06, hw * 0.1, hh * 0.13, skin, true);
+  // a modest ear at jaw height — long hair covers it entirely
+  if (look.hairStyle !== "long") {
+    drawEar(ctx, hcx - dir * hw * 0.2, hcy + hh * 0.09, hw * 0.085, hh * 0.115, skin, true);
+  }
 
   // Compact cap and bangs: enough to show direction without hiding the face.
   ctx.fillStyle = hair;
@@ -1533,7 +1537,7 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   }
 
   const eyeR = hw * (look.child ? 0.12 : 0.095);
-  const eyeX = hcx + dir * hw * 0.32;
+  const eyeX = hcx + dir * hw * 0.34;
   const eyeY = hcy + hh * (look.child ? 0.07 : 0.05); // low enough to clear the bangs
   ellipse(ctx, eyeX, eyeY, eyeR * 0.95, eyeR * 1.2, "#ffffff");
   ellipse(ctx, eyeX + dir * eyeR * 0.08, eyeY + eyeR * 0.16, eyeR * 0.62, eyeR * 0.85, look.elder ? "#6b6b74" : (look.iris ?? "#4a3526"));
@@ -1566,13 +1570,13 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.strokeStyle = look.gender === "female" ? "#d9707f" : "#bb6a62";
   ctx.lineWidth = hw * (look.child ? 0.05 : 0.038);
   ctx.beginPath();
-  ctx.moveTo(hcx + dir * hw * 0.22, eyeY + hh * 0.2);
-  ctx.quadraticCurveTo(hcx + dir * hw * 0.32, eyeY + hh * 0.235, hcx + dir * hw * 0.42, eyeY + hh * 0.19);
+  ctx.moveTo(hcx + dir * hw * 0.17, eyeY + hh * 0.2);
+  ctx.quadraticCurveTo(hcx + dir * hw * 0.27, eyeY + hh * 0.23, hcx + dir * hw * 0.36, eyeY + hh * 0.185);
   ctx.stroke();
 
-  ctx.fillStyle = "rgba(255,140,160,0.24)";
+  ctx.fillStyle = "rgba(255,140,160,0.15)";
   ctx.beginPath();
-  ctx.ellipse(hcx + dir * hw * 0.24, eyeY + hh * 0.14, hw * 0.09, hh * 0.05, 0, 0, Math.PI * 2);
+  ctx.ellipse(hcx + dir * hw * 0.2, eyeY + hh * 0.15, hw * 0.075, hh * 0.045, 0, 0, Math.PI * 2);
   ctx.fill();
 
   if (look.elder) {

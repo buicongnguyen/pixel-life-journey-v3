@@ -1113,7 +1113,8 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
     const skirtHemY = hipY + H * (look.child ? 0.035 : look.elder ? 0.095 : (look.pants === "#ffffff" || look.pants === "#f7f2ff") ? 0.085 : 0.065);
     taper(ctx, cx, torsoTopY + torsoH * 0.64, sideWaistW * 1.1, skirtHemY, sideHipW * 1.42, hgrad(ctx, cx - sideHipW * 0.7, sideHipW * 1.4, look.pants));
   } else {
-    taper(ctx, cx, torsoTopY + torsoH * 0.66, sideWaistW, hipY + H * 0.01, sideHipW, hgrad(ctx, cx - sideHipW / 2, sideHipW, look.pants));
+    // trousers: a slim pelvis block — at full profile width it read as a skirt
+    taper(ctx, cx, torsoTopY + torsoH * 0.66, sideWaistW * 0.88, hipY + H * 0.01, sideHipW * 0.78, hgrad(ctx, cx - sideHipW * 0.39, sideHipW * 0.78, look.pants));
   }
   taper(ctx, torsoCx, torsoTopY, sideShoulderW, torsoTopY + torsoH * 0.66, sideWaistW, hgrad(ctx, torsoCx - sideShoulderW / 2, sideShoulderW, look.shirt, 22, 22));
   if (female && look.mature) {
@@ -1182,6 +1183,12 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   limb(ctx, cx + dir * sideHipW * 0.16 + dir * stride * 0.28, kneeY - nearLift * 0.28, nearFootX, footBaseY - nearLift, legW * 0.92, look.pants);
   ellipse(ctx, cx + dir * sideHipW * 0.16 + dir * stride * 0.28, kneeY - nearLift * 0.28, legW * 0.46, legW * 0.52, look.pants);
   sideShoe(ctx, nearFootX + dir * legW * 0.24, footBaseY - nearLift + H * 0.017, dir, legW * 2.32, H * 0.047, hgrad(ctx, nearFootX - legW, legW * 2, look.shoes));
+  if (look.skirt) {
+    // a skirt hangs over BOTH legs — repaint it above the near thigh so only
+    // the leg below the hem shows
+    const hem2 = hipY + H * (look.child ? 0.035 : look.elder ? 0.095 : (look.pants === "#ffffff" || look.pants === "#f7f2ff") ? 0.085 : 0.065);
+    taper(ctx, cx, torsoTopY + torsoH * 0.64, sideWaistW * 1.1, hem2, sideHipW * 1.42, hgrad(ctx, cx - sideHipW * 0.7, sideHipW * 1.4, look.pants));
+  }
 
   const nearElbowX = cx + dir * sideShoulderW * 0.18 + dir * stride * 0.3;
   const nearHandX = cx + dir * sideShoulderW * 0.09 + dir * stride * 0.5;

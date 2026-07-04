@@ -1146,7 +1146,29 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
     // repaint the far thigh over the block so no hem line crosses it
     limb(ctx, cx - dir * sideHipW * 0.08, hipY, cx - dir * sideHipW * 0.13 - dir * stride * 0.2, kneeY - farLift * 0.25, legW * 0.92, shade(look.pants, 10));
   }
-  taper(ctx, torsoCx, torsoTopY, sideShoulderW, torsoTopY + torsoH * 0.66, sideWaistW, hgrad(ctx, torsoCx - sideShoulderW / 2, sideShoulderW, look.shirt, 22, 22));
+  // Anatomy-shaped profile torso (was a straight trapezoid): the ribcage
+  // pushes the CHEST FORWARD, the back bows out under the shoulder blades and
+  // tucks in at the lumbar — the S-line that makes a side view read human.
+  {
+    const waistY = torsoTopY + torsoH * 0.66;
+    const wF = torsoCx + dir * sideWaistW * 0.5;
+    const wB = torsoCx - dir * sideWaistW * 0.5;
+    const sTopF = torsoCx + dir * sideShoulderW * 0.46;
+    const sTopB = torsoCx - dir * sideShoulderW * 0.5;
+    ctx.fillStyle = hgrad(ctx, torsoCx - sideShoulderW * 0.62, sideShoulderW * 1.24, look.shirt, 22, 22);
+    ctx.beginPath();
+    ctx.moveTo(sTopB, torsoTopY + 1);
+    ctx.quadraticCurveTo(torsoCx, torsoTopY - 3, sTopF, torsoTopY + 2);
+    ctx.quadraticCurveTo(torsoCx + dir * sideShoulderW * 0.66, torsoTopY + torsoH * 0.24, wF, waistY);
+    ctx.lineTo(wB, waistY);
+    ctx.quadraticCurveTo(torsoCx - dir * sideWaistW * 0.42, torsoTopY + torsoH * 0.48, torsoCx - dir * sideShoulderW * 0.56, torsoTopY + torsoH * 0.28);
+    ctx.quadraticCurveTo(torsoCx - dir * sideShoulderW * 0.66, torsoTopY + torsoH * 0.1, sTopB, torsoTopY + 1);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = OUTLINE_W;
+    ctx.stroke();
+  }
   if (female && look.mature) {
     // in profile the bust must change the SILHOUETTE: a filled, outlined curve
     // that protrudes past the torso's front edge at chest height
@@ -1227,6 +1249,13 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const nearHandX = cx + dir * sideShoulderW * 0.09 - dir * stride * 0.5;
   limb(ctx, cx + dir * sideShoulderW * 0.2, shoulderY, nearElbowX, elbowY, armW, look.shirt);
   limb(ctx, nearElbowX, elbowY, nearHandX, handY, armW * 0.9, look.shirt);
+  // rounded deltoid cap — the arm visibly hangs FROM the shoulder mass
+  ellipse(ctx, cx + dir * sideShoulderW * 0.18, shoulderY - armW * 0.1, armW * 0.68, armW * 0.72, tint(look.shirt, 8));
+  ctx.strokeStyle = shade(look.shirt, 24);
+  ctx.lineWidth = Math.max(0.7, armW * 0.1);
+  ctx.beginPath();
+  ctx.arc(cx + dir * sideShoulderW * 0.18, shoulderY - armW * 0.1, armW * 0.62, Math.PI * 0.15, Math.PI * 0.85);
+  ctx.stroke();
   jointCover(ctx, nearElbowX, elbowY, armW, look.shirt);
   drawHand(ctx, nearHandX, handY, armW * 0.96, armW * 0.84, look.skin, dir, dir * 0.12);
 

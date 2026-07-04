@@ -1469,9 +1469,6 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   drawEar(ctx, hcx - dir * hw * 0.18, hcy + hh * 0.06, hw * 0.1, hh * 0.13, skin, true);
 
   // Compact cap and bangs: enough to show direction without hiding the face.
-  // (Bald grandpa skips the crown cap — he keeps the nape hair + a comb-over.)
-  const baldSide = look.elder && look.hairStyle === "short";
-  if (!baldSide) {
   ctx.fillStyle = hair;
   ctx.beginPath();
   ctx.moveTo(hcx - dir * headRx * 0.92, hcy - headRy * 0.05);
@@ -1484,18 +1481,6 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = OUTLINE_W;
   ctx.stroke();
-  } else {
-    ctx.save();
-    ctx.globalAlpha = 0.75;
-    ctx.strokeStyle = hair;
-    ctx.lineWidth = Math.max(1, hw * 0.03);
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(hcx - dir * hw * 0.28, top + hh * 0.1);
-    ctx.quadraticCurveTo(hcx, top + hh * 0.0, hcx + dir * hw * 0.22, top + hh * 0.1);
-    ctx.stroke();
-    ctx.restore();
-  }
 
   // hair continues down the BACK of the skull to the nape — the crown-only cap
   // left bare skin behind the ear, which read as a swim cap
@@ -1652,36 +1637,6 @@ function drawHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
   const stroke = (): void => { ctx.strokeStyle = OUTLINE; ctx.lineWidth = OUTLINE_W; ctx.stroke(); };
   // NOTE: the long-hair back layer is drawn earlier, BEHIND the head (drawBackHair),
   // so it never paints over the face.
-
-  // Grandpa: a bald crown with a white horseshoe at the sides and a thin
-  // comb-over — the full cap read as grandma's coif on him.
-  if (look.elder && !longHair && look.hairStyle !== "bun") {
-    ctx.fillStyle = hair;
-    for (const sgn of [-1, 1]) {
-      ctx.beginPath();
-      ctx.moveTo(hcx + sgn * hw * 0.33, top + hh * 0.28);
-      ctx.quadraticCurveTo(hcx + sgn * hw * 0.62, top + hh * 0.26, hcx + sgn * hw * 0.54, top + hh * 0.6);
-      ctx.quadraticCurveTo(hcx + sgn * hw * 0.42, top + hh * 0.56, hcx + sgn * hw * 0.35, top + hh * 0.42);
-      ctx.closePath();
-      ctx.fill();
-      stroke();
-    }
-    ctx.save();
-    ctx.globalAlpha = 0.75;
-    ctx.strokeStyle = hair;
-    ctx.lineWidth = Math.max(1, hw * 0.035);
-    ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(hcx - hw * 0.3, top + hh * 0.16);
-    ctx.quadraticCurveTo(hcx, top + hh * 0.02, hcx + hw * 0.3, top + hh * 0.15);
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.moveTo(hcx - hw * 0.24, top + hh * 0.25);
-    ctx.quadraticCurveTo(hcx, top + hh * 0.13, hcx + hw * 0.24, top + hh * 0.24);
-    ctx.stroke();
-    ctx.restore();
-    return;
-  }
 
   // main hair cap with volume above the crown
   ctx.fillStyle = hair;
@@ -2673,7 +2628,7 @@ function drawMountainArea(ctx: CanvasRenderingContext2D, W: number, top: number,
 function drawBeachArea(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, t: number): void {
   // bands scale with the area height — the sea must survive short zones
   const seaTop = Math.round(top + Math.max(20, Math.min(42, (bottom - top) * 0.16)));
-  const sandTop = Math.round(Math.max(seaTop + 30, top + Math.min(122, (bottom - top) * 0.55)));
+  const sandTop = Math.round(Math.max(seaTop + 30, top + Math.min(110, (bottom - top) * 0.5))); // sand starts before the walkable band — nobody stands on water
   const sky = ctx.createLinearGradient(0, top, 0, seaTop);
   sky.addColorStop(0, "#7fd4f2");
   sky.addColorStop(1, "#eafaff");
@@ -2758,8 +2713,12 @@ function drawBeachArea(ctx: CanvasRenderingContext2D, W: number, top: number, bo
 }
 
 function drawShipDeckArea(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, t: number): void {
-  const horizon = Math.round(top + Math.max(24, Math.min(46, (bottom - top) * 0.2)));
-  const deckTop = Math.round(Math.max(horizon + 40, bottom - Math.max(48, Math.min(84, (bottom - top) * 0.34))));
+  // Sky and sea live ONLY in the thin non-walkable strip at the top — the deck
+  // fills the entire playable area so people walk on planks, never on water.
+  const h = bottom - top;
+  const horizon = Math.round(top + Math.max(18, Math.min(34, h * 0.14)));
+  const railY = Math.round(top + Math.max(76, Math.min(106, h * 0.24)));
+  const deckTop = railY + 12;
   const sky = ctx.createLinearGradient(0, top, 0, horizon);
   sky.addColorStop(0, "#8ed2f5");
   sky.addColorStop(1, "#e8f8ff");
@@ -2782,8 +2741,7 @@ function drawShipDeckArea(ctx: CanvasRenderingContext2D, W: number, top: number,
   }
   // a distant island
   ellipse(ctx, W - 130, horizon + 8, 34, 8, "#5e8f6a");
-  // white railing at the deck edge
-  const railY = deckTop - 26;
+  // white railing between the sea and the deck
   px(ctx, 0, railY, W, 4, "#f4f7fb");
   px(ctx, 0, railY + 12, W, 3, "#e2e9f2");
   for (let x = 10; x < W; x += 42) px(ctx, x, railY, 4, 26, "#eef2f8");

@@ -668,7 +668,7 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
   const headH = H * look.headRatio;
   const headW = headH * (look.child ? 0.82 : 0.76) * (1 + look.chub * 0.05);
   const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
-  const torsoH = (H - headH - neckH) * (look.child ? 0.42 : 0.38);
+  const torsoH = (H - headH - neckH) * (look.child ? 0.46 : 0.44); // legs a touch shorter — real torso:leg ratio
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
   const shoulderW = headW * (female ? 1.17 : 1.26) + look.chub * headW * 0.06;
   const waistW = shoulderW * (female ? 0.68 : 0.74);
@@ -701,12 +701,13 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
     const kneeY = hipY + legH * 0.48;
     const leftLift = swing > 0 ? lift : 0;
     const rightLift = swing < 0 ? lift : 0;
-    const leftHipX = cx - hipW * 0.1;
-    const rightHipX = cx + hipW * 0.1;
-    const leftKneeX = cx - hipW * 0.085 - stride * 0.34;
-    const rightKneeX = cx + hipW * 0.085 + stride * 0.34;
-    const leftFootX = cx - hipW * 0.11 - stride;
-    const rightFootX = cx + hipW * 0.11 + stride;
+    // a natural hip-width stance — the legs used to nearly touch
+    const leftHipX = cx - hipW * 0.17;
+    const rightHipX = cx + hipW * 0.17;
+    const leftKneeX = cx - hipW * 0.15 - stride * 0.34;
+    const rightKneeX = cx + hipW * 0.15 + stride * 0.34;
+    const leftFootX = cx - hipW * 0.17 - stride;
+    const rightFootX = cx + hipW * 0.17 + stride;
 
     limb(ctx, leftHipX, hipY, leftKneeX, kneeY - leftLift * 0.38, legW, shade(look.pants, 4));
     limb(ctx, leftKneeX, kneeY - leftLift * 0.38, leftFootX, ly - leftLift, legW * 0.94, look.pants);
@@ -1060,7 +1061,7 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const headH = H * look.headRatio;
   const headW = headH * (look.child ? 0.82 : 0.76) * (1 + look.chub * 0.05);
   const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
-  const torsoH = (H - headH - neckH) * (look.child ? 0.42 : 0.38);
+  const torsoH = (H - headH - neckH) * (look.child ? 0.46 : 0.44); // legs a touch shorter — real torso:leg ratio
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
   const shoulderW = headW * (female ? 1.17 : 1.26) + look.chub * headW * 0.06;
   const waistW = shoulderW * (female ? 0.68 : 0.74);
@@ -1225,7 +1226,7 @@ function drawBackStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const headH = H * look.headRatio;
   const headW = headH * (look.child ? 0.82 : 0.76) * (1 + look.chub * 0.05);
   const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
-  const torsoH = (H - headH - neckH) * (look.child ? 0.42 : 0.38);
+  const torsoH = (H - headH - neckH) * (look.child ? 0.46 : 0.44); // legs a touch shorter — real torso:leg ratio
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
   const shoulderW = headW * (female ? 1.15 : 1.24) + look.chub * headW * 0.06;
   const waistW = shoulderW * (female ? 0.68 : 0.74);
@@ -1244,12 +1245,13 @@ function drawBackStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
 
   groundShadow(ctx, cx, footY, shoulderW * 0.48);
 
-  const leftHipX = cx - hipW * 0.1;
-  const rightHipX = cx + hipW * 0.1;
-  const leftKneeX = cx - hipW * 0.08 - stride * 0.22;
-  const rightKneeX = cx + hipW * 0.08 + stride * 0.22;
-  const leftFootX = cx - hipW * 0.1 - stride * 0.62;
-  const rightFootX = cx + hipW * 0.1 + stride * 0.62;
+  // a natural hip-width stance, matching the front view
+  const leftHipX = cx - hipW * 0.17;
+  const rightHipX = cx + hipW * 0.17;
+  const leftKneeX = cx - hipW * 0.15 - stride * 0.22;
+  const rightKneeX = cx + hipW * 0.15 + stride * 0.22;
+  const leftFootX = cx - hipW * 0.16 - stride * 0.62;
+  const rightFootX = cx + hipW * 0.16 + stride * 0.62;
   limb(ctx, leftHipX, hipY, leftKneeX, kneeY - (swing > 0 ? lift * 0.3 : 0), legW, shade(look.pants, 5));
   limb(ctx, leftKneeX, kneeY - (swing > 0 ? lift * 0.3 : 0), leftFootX, shoeY - (swing > 0 ? lift : 0), legW * 0.92, look.pants);
   ellipse(ctx, leftKneeX, kneeY - (swing > 0 ? lift * 0.3 : 0), legW * 0.46, legW * 0.52, look.pants);
@@ -1440,8 +1442,6 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   hg.addColorStop(0.7, skin);
   hg.addColorStop(1, shade(skin, 8));
 
-  drawEar(ctx, hcx - dir * hw * 0.45, hcy + hh * 0.04, hw * 0.09, hh * 0.12, skin, true);
-
   ctx.fillStyle = hg;
   ctx.beginPath();
   // profile with a SMALL nose bump (an earlier 1.12× bump read as a bird beak)
@@ -1450,8 +1450,8 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.quadraticCurveTo(hcx + dir * headRx * 0.66, hcy - headRy * 0.9, hcx + dir * headRx * 0.78, hcy - headRy * 0.23);
   ctx.quadraticCurveTo(hcx + dir * headRx * 0.92, hcy - headRy * 0.06, hcx + dir * headRx * 0.8, hcy + headRy * 0.12);
   ctx.quadraticCurveTo(hcx + dir * headRx * 0.84, hcy + headRy * 0.31, hcx + dir * headRx * 0.56, hcy + headRy * 0.38);
-  ctx.quadraticCurveTo(hcx + dir * headRx * 0.4, hcy + headRy * 0.62, hcx + dir * headRx * 0.02, hcy + headRy * 0.78);
-  ctx.quadraticCurveTo(hcx - dir * headRx * 0.48, hcy + headRy * 0.68, hcx - dir * headRx * 0.62, hcy + headRy * 0.1);
+  ctx.quadraticCurveTo(hcx + dir * headRx * 0.42, hcy + headRy * 0.56, hcx + dir * headRx * 0.04, hcy + headRy * 0.68);
+  ctx.quadraticCurveTo(hcx - dir * headRx * 0.46, hcy + headRy * 0.6, hcx - dir * headRx * 0.62, hcy + headRy * 0.1);
   ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = OUTLINE;
@@ -1464,6 +1464,9 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.moveTo(hcx + dir * hw * 0.19, hcy + hh * 0.39);
   ctx.quadraticCurveTo(hcx + dir * hw * 0.36, hcy + hh * 0.52, hcx + dir * hw * 0.1, hcy + hh * 0.68);
   ctx.stroke();
+  // a real ear ON the head, just behind centre (it used to hang off the very
+  // back of the skull like a knob)
+  drawEar(ctx, hcx - dir * hw * 0.18, hcy + hh * 0.06, hw * 0.1, hh * 0.13, skin, true);
 
   // Compact cap and bangs: enough to show direction without hiding the face.
   ctx.fillStyle = hair;
@@ -1478,6 +1481,22 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = OUTLINE_W;
   ctx.stroke();
+
+  // hair continues down the BACK of the skull to the nape — the crown-only cap
+  // left bare skin behind the ear, which read as a swim cap
+  if (look.hairStyle !== "long") {
+    ctx.fillStyle = hair;
+    ctx.beginPath();
+    ctx.moveTo(hcx - dir * headRx * 0.85, hcy - headRy * 0.12);
+    ctx.quadraticCurveTo(hcx - dir * headRx * 0.88, hcy + headRy * 0.26, hcx - dir * headRx * 0.55, hcy + headRy * 0.52);
+    ctx.quadraticCurveTo(hcx - dir * headRx * 0.42, hcy + headRy * 0.28, hcx - dir * headRx * 0.46, hcy + headRy * 0.0);
+    ctx.quadraticCurveTo(hcx - dir * headRx * 0.56, hcy - headRy * 0.22, hcx - dir * headRx * 0.85, hcy - headRy * 0.12);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = OUTLINE_W;
+    ctx.stroke();
+  }
 
   // one soft fringe sweep hugging the temple (pointed locks stuck off the crown
   // like a bow once shortened — a single smooth sweep reads as a real hairline).

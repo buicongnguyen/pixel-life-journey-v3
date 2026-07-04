@@ -918,23 +918,32 @@ function drawOutfitDetails(
   drawHeritageOutfitDetails(ctx, cx, torsoTopY, torsoH, shoulderW, waistW, hipW, headH, look);
 
   if (look.gender === "female" && look.mature) {
-    const bustY = torsoTopY + torsoH * (look.elder ? 0.36 : 0.32);
-    const bustRx = shoulderW * (look.elder ? 0.105 : 0.13);
-    const bustRy = torsoH * (look.elder ? 0.075 : 0.095);
-    const bustGap = shoulderW * 0.13;
-    ctx.save();
-    ctx.globalAlpha = 0.72;
-    ellipse(ctx, cx - bustGap, bustY, bustRx, bustRy, tint(look.shirt, look.elder ? 12 : 20));
-    ellipse(ctx, cx + bustGap, bustY, bustRx, bustRy, tint(look.shirt, look.elder ? 12 : 20));
-    ctx.restore();
-    ctx.strokeStyle = shade(look.shirt, look.elder ? 22 : 34);
-    ctx.lineWidth = Math.max(1, shoulderW * 0.022);
+    // a real bust with VOLUME: radially-lit shapes in the shirt colour plus a
+    // soft shadow beneath — the old faint tint patch read as a flat male chest
+    const bustY = torsoTopY + torsoH * (look.elder ? 0.36 : 0.33);
+    const bustRx = shoulderW * (look.elder ? 0.115 : 0.16);
+    const bustRy = torsoH * (look.elder ? 0.085 : 0.12);
+    const bustGap = shoulderW * 0.145;
+    for (const sgn of [-1, 1]) {
+      const bx = cx + sgn * bustGap;
+      // under-shadow first, so the shape visibly lifts off the torso
+      ctx.save();
+      ctx.globalAlpha = 0.4;
+      ellipse(ctx, bx, bustY + bustRy * 0.5, bustRx * 0.94, bustRy * 0.62, shade(look.shirt, 32));
+      ctx.restore();
+      const bg = ctx.createRadialGradient(bx - bustRx * 0.28, bustY - bustRy * 0.35, bustRx * 0.12, bx, bustY, bustRx * 1.12);
+      bg.addColorStop(0, tint(look.shirt, look.elder ? 16 : 30));
+      bg.addColorStop(0.7, tint(look.shirt, 6));
+      bg.addColorStop(1, shade(look.shirt, 14));
+      ellipse(ctx, bx, bustY, bustRx, bustRy, bg);
+    }
+    // the centre line between the shapes
+    ctx.strokeStyle = shade(look.shirt, 30);
+    ctx.lineWidth = Math.max(1, shoulderW * 0.02);
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(cx - bustGap - bustRx * 0.65, bustY + bustRy * 0.46);
-    ctx.quadraticCurveTo(cx - bustGap, bustY + bustRy * 0.95, cx - bustGap + bustRx * 0.78, bustY + bustRy * 0.4);
-    ctx.moveTo(cx + bustGap - bustRx * 0.78, bustY + bustRy * 0.4);
-    ctx.quadraticCurveTo(cx + bustGap, bustY + bustRy * 0.95, cx + bustGap + bustRx * 0.65, bustY + bustRy * 0.46);
+    ctx.moveTo(cx, bustY - bustRy * 0.3);
+    ctx.lineTo(cx, bustY + bustRy * 0.55);
     ctx.stroke();
   }
 
@@ -1108,16 +1117,27 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   }
   taper(ctx, torsoCx, torsoTopY, sideShoulderW, torsoTopY + torsoH * 0.66, sideWaistW, hgrad(ctx, torsoCx - sideShoulderW / 2, sideShoulderW, look.shirt, 22, 22));
   if (female && look.mature) {
-    const bustY = torsoTopY + torsoH * 0.32;
-    const bustX = torsoCx + dir * sideShoulderW * 0.22;
-    const bustScale = look.elder ? 0.14 : 0.23;
-    ellipse(ctx, bustX, bustY, sideShoulderW * bustScale, torsoH * (look.elder ? 0.1 : 0.145), tint(look.shirt, look.elder ? 12 : 22));
-    ctx.strokeStyle = shade(look.shirt, 34);
-    ctx.lineWidth = Math.max(1, H * 0.007);
+    // in profile the bust must change the SILHOUETTE: a filled, outlined curve
+    // that protrudes past the torso's front edge at chest height
+    const bustY = torsoTopY + torsoH * (look.elder ? 0.36 : 0.32);
+    const frontX = torsoCx + dir * sideShoulderW * 0.42;
+    const depth = sideShoulderW * (look.elder ? 0.2 : 0.3);
+    const half = torsoH * (look.elder ? 0.09 : 0.115);
+    ctx.fillStyle = hgrad(ctx, Math.min(frontX, frontX + dir * depth) - 2, depth + 4, look.shirt, 20, 16);
     ctx.beginPath();
-    ctx.moveTo(bustX - dir * sideShoulderW * 0.16, bustY + torsoH * 0.07);
-    ctx.quadraticCurveTo(bustX + dir * sideShoulderW * 0.05, bustY + torsoH * 0.17, bustX + dir * sideShoulderW * 0.24, bustY + torsoH * 0.04);
+    ctx.moveTo(frontX, bustY - half);
+    ctx.quadraticCurveTo(frontX + dir * depth * 1.15, bustY - half * 0.5, frontX + dir * depth * 0.9, bustY + half * 0.35);
+    ctx.quadraticCurveTo(frontX + dir * depth * 0.5, bustY + half * 0.95, frontX, bustY + half * 0.8);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = OUTLINE_W;
     ctx.stroke();
+    // soft top light so the curve reads round under the cloth
+    ctx.save();
+    ctx.globalAlpha = 0.4;
+    ellipse(ctx, frontX + dir * depth * 0.45, bustY - half * 0.3, depth * 0.4, half * 0.42, tint(look.shirt, 26));
+    ctx.restore();
   }
   ctx.strokeStyle = "rgba(255,255,255,0.38)";
   ctx.lineWidth = Math.max(1, H * 0.012);

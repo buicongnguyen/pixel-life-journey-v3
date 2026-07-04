@@ -752,6 +752,9 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
     taper(ctx, cx, torsoTopY + torsoH * 0.64, waistW * 0.95, skirtHemY, hipW * 1.22, hgrad(ctx, cx - hipW * 0.62, hipW * 1.24, look.pants));
   } else {
     taper(ctx, cx, torsoTopY + torsoH * 0.66, waistW, hipY + H * 0.01, hipW, hgrad(ctx, cx - hipW / 2, hipW, look.pants));
+    // trousers: repaint the legs over the block — its outlined bottom hem
+    // crossing the thighs was what read as a skirt on men
+    drawLegPair();
   }
 
   // --- torso ---------------------------------------------------------------
@@ -1115,6 +1118,8 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   } else {
     // trousers: a slim pelvis block — at full profile width it read as a skirt
     taper(ctx, cx, torsoTopY + torsoH * 0.66, sideWaistW * 0.88, hipY + H * 0.01, sideHipW * 0.78, hgrad(ctx, cx - sideHipW * 0.39, sideHipW * 0.78, look.pants));
+    // repaint the far thigh over the block so no hem line crosses it
+    limb(ctx, cx - dir * sideHipW * 0.08, hipY, cx - dir * sideHipW * 0.13 - dir * stride * 0.2, kneeY - farLift * 0.25, legW * 0.92, shade(look.pants, 10));
   }
   taper(ctx, torsoCx, torsoTopY, sideShoulderW, torsoTopY + torsoH * 0.66, sideWaistW, hgrad(ctx, torsoCx - sideShoulderW / 2, sideShoulderW, look.shirt, 22, 22));
   if (female && look.mature) {
@@ -1294,6 +1299,9 @@ function drawBackStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
     taper(ctx, cx, torsoTopY + torsoH * 0.64, waistW * 0.95, skirtHemY, hipW * 1.14, hgrad(ctx, cx - hipW * 0.57, hipW * 1.14, look.pants));
   } else {
     taper(ctx, cx, torsoTopY + torsoH * 0.66, waistW, hipY + H * 0.01, hipW, hgrad(ctx, cx - hipW / 2, hipW, look.pants));
+    // trousers: repaint the thighs over the block so no hem crosses them
+    limb(ctx, leftHipX, hipY, leftKneeX, kneeY - (swing > 0 ? lift * 0.3 : 0), legW, shade(look.pants, 5));
+    limb(ctx, rightHipX, hipY, rightKneeX, kneeY - (swing < 0 ? lift * 0.3 : 0), legW, shade(look.pants, 5));
   }
   taper(ctx, cx, torsoTopY, shoulderW, torsoTopY + torsoH * 0.66, waistW, hgrad(ctx, cx - shoulderW / 2, shoulderW, look.shirt, 20, 24));
 

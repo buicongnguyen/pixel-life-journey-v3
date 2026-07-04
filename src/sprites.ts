@@ -734,7 +734,7 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
   // Anchored at the shoulder corners and falling just outside the torso taper,
   // with the hands resting beside the hips — a real relaxed stance. The torso
   // is painted after, so the arms' inner edges tuck behind the body.
-  const aSwing = -swing * H * 0.078;
+  const aSwing = swing * H * 0.078; // arms counter-swing the legs (contralateral)
   const shoulderY = torsoTopY + headH * 0.14;
   const handY = torsoTopY + torsoH * 1.04;
   const elbowY = torsoTopY + torsoH * 0.55;
@@ -1186,8 +1186,9 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   ctx.stroke();
   ellipse(ctx, neckTopX, neckTopY + neckH * 0.15, neckH * 0.4, neckH * 0.3, look.skin);
 
-  const farElbowX = cx - dir * sideShoulderW * 0.16 - dir * stride * 0.2;
-  const farHandX = cx - dir * sideShoulderW * 0.05 - dir * stride * 0.34;
+  // contralateral swing: the far arm goes FORWARD while the far leg goes back
+  const farElbowX = cx - dir * sideShoulderW * 0.16 + dir * stride * 0.2;
+  const farHandX = cx - dir * sideShoulderW * 0.05 + dir * stride * 0.34;
   limb(ctx, cx - dir * sideShoulderW * 0.08, shoulderY, farElbowX, elbowY, armW * 0.88, shade(look.shirt, 12));
   limb(ctx, farElbowX, elbowY, farHandX, handY, armW * 0.8, shade(look.shirt, 6));
   drawHand(ctx, farHandX, handY, armW * 0.78, armW * 0.68, shade(look.skin, 16), -dir, -dir * 0.08);
@@ -1203,8 +1204,9 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
     taper(ctx, cx, torsoTopY + torsoH * 0.64, sideWaistW * 1.1, hem2, sideHipW * 1.42, hgrad(ctx, cx - sideHipW * 0.7, sideHipW * 1.4, look.pants));
   }
 
-  const nearElbowX = cx + dir * sideShoulderW * 0.18 + dir * stride * 0.3;
-  const nearHandX = cx + dir * sideShoulderW * 0.09 + dir * stride * 0.5;
+  // ...and the near arm swings BACK while the near leg strides forward
+  const nearElbowX = cx + dir * sideShoulderW * 0.18 - dir * stride * 0.3;
+  const nearHandX = cx + dir * sideShoulderW * 0.09 - dir * stride * 0.5;
   limb(ctx, cx + dir * sideShoulderW * 0.2, shoulderY, nearElbowX, elbowY, armW, look.shirt);
   limb(ctx, nearElbowX, elbowY, nearHandX, handY, armW * 0.9, look.shirt);
   drawHand(ctx, nearHandX, handY, armW * 0.96, armW * 0.84, look.skin, dir, dir * 0.12);

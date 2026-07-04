@@ -1102,10 +1102,11 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const shoulderW = headW * (female ? 1.24 : 1.34) + look.chub * headW * 0.06;
   const waistW = shoulderW * (female ? 0.6 : 0.78); // hourglass her, straight him
   const hipW = shoulderW * (female ? 1.06 : 0.84);
-  // a real body has DEPTH in profile — the old 0.54-0.58 widths read paper-thin
-  const sideShoulderW = shoulderW * 0.74;
-  const sideWaistW = waistW * 0.76;
-  const sideHipW = hipW * 0.72;
+  // real chest DEPTH is ~60% of shoulder width: visibly slimmer than the
+  // front view, but not the old paper-thin 0.54
+  const sideShoulderW = shoulderW * 0.62;
+  const sideWaistW = waistW * 0.68;
+  const sideHipW = hipW * 0.66;
   const legW = H * (0.052 + look.chub * 0.016);
   const armW = H * (0.039 + look.chub * 0.01);
   const hipY = baseY - legH;

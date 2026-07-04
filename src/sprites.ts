@@ -373,6 +373,7 @@ export interface AvatarLook {
   outfitStyle: "western" | "asian" | "middleEastern" | "africanDiaspora";
   skirt: boolean;
   mature: boolean;
+  iris?: string; // eye colour — set from the heritage palette (falls back to blue)
 }
 
 export type AvatarFacing = "front" | "left" | "right" | "back";
@@ -421,6 +422,7 @@ interface HeritagePalette {
   skin: string;
   hair: string;
   elderHair: string;
+  iris: string;
   texture: AvatarLook["hairTexture"];
   shirtsM: string[];
   shirtsF: string[];
@@ -435,6 +437,7 @@ const HERITAGE_PALETTES: Record<HeritageStyle, HeritagePalette> = {
     skin: "#ffd0a8",
     hair: "#3a2a1e",
     elderHair: "#e4e4ec",
+    iris: "#3b6f9d",
     texture: "wavy",
     shirtsM: ["#4aa3ff", "#45c46a", "#ffb934", "#6d7dff", "#1fc7b6", "#ff7f50", "#2d95ff", "#42c98f"],
     shirtsF: ["#ff6eb5", "#ff8cd3", "#ad7cff", "#ff6f91", "#79a6ff", "#ff70c7", "#e56bd6", "#ff7aa8"],
@@ -447,6 +450,7 @@ const HERITAGE_PALETTES: Record<HeritageStyle, HeritagePalette> = {
     skin: "#f1bd8e",
     hair: "#221916",
     elderHair: "#d7d8dc",
+    iris: "#4a3526",
     texture: "straight",
     shirtsM: ["#d83b3b", "#1f9aa0", "#274f8f", "#f0b540", "#46a86b", "#6f63c7", "#d86b3d", "#2d95ff"],
     shirtsF: ["#e84c65", "#ff9f43", "#16a6a0", "#b75adf", "#f6c85f", "#ef7b95", "#4da3ff", "#8acb88"],
@@ -459,6 +463,7 @@ const HERITAGE_PALETTES: Record<HeritageStyle, HeritagePalette> = {
     skin: "#d39a70",
     hair: "#241914",
     elderHair: "#d0d0d2",
+    iris: "#4a3526",
     texture: "wavy",
     shirtsM: ["#f7ead2", "#f2f2e8", "#1f6f75", "#d9a441", "#5b6db5", "#6c4a2e", "#2f8a7c", "#d8c090"],
     shirtsF: ["#1d2b45", "#2c7a79", "#6b4ea0", "#d7a84c", "#8f2f52", "#f4dfc5", "#446b8e", "#b85c38"],
@@ -471,6 +476,7 @@ const HERITAGE_PALETTES: Record<HeritageStyle, HeritagePalette> = {
     skin: "#7a4a32",
     hair: "#17120f",
     elderHair: "#c8c8c5",
+    iris: "#33231a",
     texture: "coily",
     shirtsM: ["#ffcf33", "#e63946", "#118a5b", "#2760a8", "#f47c20", "#8a4bd6", "#13b5b1", "#f2efe4"],
     shirtsF: ["#f25f5c", "#ffcf33", "#18a999", "#7b4dff", "#f77f00", "#2ec4b6", "#e94f8a", "#fff2a8"],
@@ -520,6 +526,7 @@ export function avatarLook(stageIndex: number, gender: Gender = "male", heritage
     outfitStyle: palette.outfitStyle,
     skirt: female && i >= 3 && !p.baby,
     mature: female && i >= 6,
+    iris: palette.iris,
   };
 }
 
@@ -606,6 +613,7 @@ export function personLook(kind: PersonKind, playerGender: Gender, stageIndex?: 
     outfitStyle: palette.outfitStyle,
     skirt: female && !p.baby,
     mature: female && profileIndex >= 6,
+    iris: palette.iris,
   };
 }
 
@@ -659,7 +667,7 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
   // Realistic pixel-body build: smaller head, real neck, shaped torso, long legs.
   const headH = H * look.headRatio;
   const headW = headH * (look.child ? 0.82 : 0.76) * (1 + look.chub * 0.05);
-  const neckH = headH * (look.child ? 0.22 : 0.3);
+  const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
   const torsoH = (H - headH - neckH) * (look.child ? 0.42 : 0.38);
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
   const shoulderW = headW * (female ? 1.17 : 1.26) + look.chub * headW * 0.06;
@@ -759,7 +767,7 @@ function drawStanding(ctx: CanvasRenderingContext2D, cx: number, footY: number, 
   ctx.stroke();
   drawOutfitDetails(ctx, cx, torsoTopY, torsoH, shoulderW, waistW, hipW, headH, look);
   // collar
-  ellipse(ctx, cx, torsoTopY + headH * 0.08, headW * 0.3, headH * 0.12, skinD);
+  ellipse(ctx, cx, torsoTopY + headH * 0.07, headW * 0.24, headH * 0.09, skinD);
 
   // --- neck ----------------------------------------------------------------
   ctx.fillStyle = skinD;
@@ -1051,7 +1059,7 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
 
   const headH = H * look.headRatio;
   const headW = headH * (look.child ? 0.82 : 0.76) * (1 + look.chub * 0.05);
-  const neckH = headH * (look.child ? 0.22 : 0.3);
+  const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
   const torsoH = (H - headH - neckH) * (look.child ? 0.42 : 0.38);
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
   const shoulderW = headW * (female ? 1.17 : 1.26) + look.chub * headW * 0.06;
@@ -1216,7 +1224,7 @@ function drawBackStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const baseY = footY - bob;
   const headH = H * look.headRatio;
   const headW = headH * (look.child ? 0.82 : 0.76) * (1 + look.chub * 0.05);
-  const neckH = headH * (look.child ? 0.22 : 0.3);
+  const neckH = headH * (look.child ? 0.22 : 0.25); // short, natural neck
   const torsoH = (H - headH - neckH) * (look.child ? 0.42 : 0.38);
   const legH = Math.max(H * 0.22, H - headH - neckH - torsoH);
   const shoulderW = headW * (female ? 1.15 : 1.24) + look.chub * headW * 0.06;
@@ -1368,16 +1376,18 @@ function drawSideBackHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: numbe
 function drawHairTexture(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: number, hh: number, look: AvatarLook, dir = 0): void {
   if (look.elder) return;
   const top = hcy - hh / 2;
+  // strands stay strictly WITHIN the hair cap — long ones used to spill down
+  // over the forehead and cheeks and read as scratches on the face
   if (look.hairTexture === "straight") {
     ctx.save();
-    ctx.globalAlpha = 0.38;
+    ctx.globalAlpha = 0.3;
     ctx.strokeStyle = tint(look.hair, 24);
     ctx.lineWidth = Math.max(0.8, hw * 0.018);
     ctx.lineCap = "round";
     for (const x of [-0.22, 0, 0.22]) {
       ctx.beginPath();
-      ctx.moveTo(hcx + hw * x, top + hh * 0.05);
-      ctx.lineTo(hcx + hw * (x * 0.85), top + hh * 0.38);
+      ctx.moveTo(hcx + hw * x, top + hh * 0.0);
+      ctx.lineTo(hcx + hw * (x * 0.9), top + hh * 0.09);
       ctx.stroke();
     }
     ctx.restore();
@@ -1385,14 +1395,14 @@ function drawHairTexture(ctx: CanvasRenderingContext2D, hcx: number, hcy: number
   }
   if (look.hairTexture === "wavy") {
     ctx.save();
-    ctx.globalAlpha = 0.36;
+    ctx.globalAlpha = 0.3;
     ctx.strokeStyle = tint(look.hair, 22);
     ctx.lineWidth = Math.max(0.9, hw * 0.02);
     ctx.lineCap = "round";
     for (const x of [-0.28, -0.08, 0.12, 0.3]) {
       ctx.beginPath();
-      ctx.moveTo(hcx + hw * x, top + hh * 0.08);
-      ctx.quadraticCurveTo(hcx + hw * (x + 0.06), top + hh * 0.2, hcx + hw * (x - 0.02), top + hh * 0.34);
+      ctx.moveTo(hcx + hw * x, top + hh * 0.0);
+      ctx.quadraticCurveTo(hcx + hw * (x + 0.05), top + hh * 0.05, hcx + hw * (x - 0.02), top + hh * 0.09);
       ctx.stroke();
     }
     ctx.restore();
@@ -1469,16 +1479,17 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.lineWidth = OUTLINE_W;
   ctx.stroke();
 
-  const locks = look.elder ? 2 : look.hairStyle === "long" ? 3 : 2;
-  ctx.fillStyle = hair;
-  for (let i = 0; i < locks; i++) {
-    const x = hcx + dir * hw * (0.28 - i * 0.16);
-    // short bangs — they must never blanket the profile eye below them
-    const len = top + hh * (look.hairStyle === "long" ? 0.24 : 0.15) + (i % 2) * hh * 0.03;
+  // one soft fringe sweep hugging the temple (pointed locks stuck off the crown
+  // like a bow once shortened — a single smooth sweep reads as a real hairline).
+  // Adults only: on small child/elder heads it detaches and floats.
+  if (!look.child && !look.elder) {
+    const sweepLen = look.hairStyle === "long" ? 0.18 : 0.08;
+    ctx.fillStyle = hair;
     ctx.beginPath();
-    ctx.moveTo(x - dir * hw * 0.12, top + hh * 0.04);
-    ctx.quadraticCurveTo(x + dir * hw * 0.02, len, x + dir * hw * 0.1, len);
-    ctx.quadraticCurveTo(x + dir * hw * 0.14, len - hh * 0.1, x + dir * hw * 0.14, top + hh * 0.08);
+    ctx.moveTo(hcx + dir * headRx * 0.34, hcy - headRy * 0.44);
+    ctx.quadraticCurveTo(hcx + dir * headRx * 0.72, hcy - headRy * 0.34, hcx + dir * headRx * 0.66, hcy - headRy * (0.18 - sweepLen));
+    ctx.quadraticCurveTo(hcx + dir * headRx * 0.52, hcy - headRy * (0.1 - sweepLen * 0.4), hcx + dir * headRx * 0.42, hcy - headRy * (0.24 - sweepLen * 0.4));
+    ctx.quadraticCurveTo(hcx + dir * headRx * 0.3, hcy - headRy * 0.34, hcx + dir * headRx * 0.34, hcy - headRy * 0.44);
     ctx.closePath();
     ctx.fill();
     ctx.strokeStyle = OUTLINE;
@@ -1506,12 +1517,12 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   const eyeX = hcx + dir * hw * 0.32;
   const eyeY = hcy + hh * (look.child ? 0.07 : 0.05); // low enough to clear the bangs
   ellipse(ctx, eyeX, eyeY, eyeR * 0.95, eyeR * 1.2, "#ffffff");
-  ellipse(ctx, eyeX + dir * eyeR * 0.08, eyeY + eyeR * 0.16, eyeR * 0.62, eyeR * 0.85, "#4a3526");
+  ellipse(ctx, eyeX + dir * eyeR * 0.08, eyeY + eyeR * 0.16, eyeR * 0.62, eyeR * 0.85, look.elder ? "#6b6b74" : (look.iris ?? "#4a3526"));
   ellipse(ctx, eyeX + dir * eyeR * 0.12, eyeY + eyeR * 0.2, eyeR * 0.34, eyeR * 0.48, "#1b1622");
   ellipse(ctx, eyeX - dir * eyeR * 0.24, eyeY - eyeR * 0.28, eyeR * 0.22, eyeR * 0.22, "#ffffff");
-  // upper eyelid, matching the front view
-  ctx.strokeStyle = "rgba(44,28,30,0.85)";
-  ctx.lineWidth = Math.max(1, eyeR * 0.24);
+  // upper eyelid, matching the front view's light lash-line
+  ctx.strokeStyle = "rgba(58,36,32,0.72)";
+  ctx.lineWidth = Math.max(0.9, eyeR * 0.15);
   ctx.lineCap = "round";
   ctx.beginPath();
   ctx.arc(eyeX, eyeY + eyeR * 0.06, eyeR * 1.0, Math.PI * 1.12, Math.PI * 1.88);
@@ -1579,6 +1590,23 @@ function drawBackHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = OUTLINE_W;
   ctx.stroke();
+  // gentle inner strands give the curtain flow — it read as a flat slab before
+  ctx.save();
+  ctx.globalAlpha = 0.3;
+  ctx.strokeStyle = shade(look.hair, 42);
+  ctx.lineWidth = Math.max(0.9, hw * 0.03);
+  ctx.lineCap = "round";
+  for (const s of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(hcx + s * hw * 0.52, hcy + hh * 0.3);
+    ctx.quadraticCurveTo(hcx + s * hw * 0.62, hcy + hh * 0.75, hcx + s * hw * 0.5, hcy + hh * 1.18);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(hcx + s * hw * 0.44, hcy + hh * 0.45);
+    ctx.quadraticCurveTo(hcx + s * hw * 0.5, hcy + hh * 0.85, hcx + s * hw * 0.42, hcy + hh * 1.24);
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: number, hh: number, look: AvatarLook): void {
@@ -1603,22 +1631,32 @@ function drawHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
   ctx.fill();
   stroke();
 
-  // fringe over the forehead — short & neat for men, longer bangs for women
-  const locks = look.elder ? 2 : longHair ? 4 : 3;
-  const fringeLen = longHair ? 0.31 : 0.17; // men get a higher hairline (more forehead)
+  // fringe over the forehead — ONE soft scalloped band (the old per-lock teeth
+  // read as dark spikes hanging over the face). A single silhouette outline,
+  // gentle waves along the lower edge, and a natural side part.
+  const fr = look.elder ? 0.14 : longHair ? 0.3 : 0.19; // fringe depth below the crown
   ctx.fillStyle = hair;
-  for (let i = 0; i < locks; i++) {
-    const t0 = (i + 0.5) / locks;
-    const lx = hcx - hw * 0.4 + hw * 0.8 * t0;
-    const len = top + hh * (fringeLen + (i % 2 ? 0.045 : 0.0));
-    ctx.beginPath();
-    ctx.moveTo(lx - hw * 0.2, top + hh * 0.08);
-    ctx.quadraticCurveTo(lx - hw * 0.04, len + hh * 0.03, lx + hw * 0.04, len);
-    ctx.quadraticCurveTo(lx + hw * 0.14, len, lx + hw * 0.22, top + hh * 0.08);
-    ctx.closePath();
-    ctx.fill();
-    stroke();
-  }
+  ctx.beginPath();
+  ctx.moveTo(hcx - hw * 0.47, top + hh * 0.34);
+  ctx.quadraticCurveTo(hcx - hw * 0.5, top + hh * 0.02, hcx - hw * 0.18, top - hh * 0.01);
+  ctx.quadraticCurveTo(hcx, top - hh * 0.02, hcx + hw * 0.18, top - hh * 0.01);
+  ctx.quadraticCurveTo(hcx + hw * 0.5, top + hh * 0.02, hcx + hw * 0.47, top + hh * 0.34);
+  // lower edge, right → left: three soft waves, swept a little to one side
+  ctx.quadraticCurveTo(hcx + hw * 0.38, top + hh * (fr + 0.05), hcx + hw * 0.24, top + hh * fr);
+  ctx.quadraticCurveTo(hcx + hw * 0.12, top + hh * (fr - 0.05), hcx + hw * 0.02, top + hh * (fr + 0.02));
+  ctx.quadraticCurveTo(hcx - hw * 0.1, top + hh * (fr + 0.06), hcx - hw * 0.2, top + hh * (fr - 0.01));
+  ctx.quadraticCurveTo(hcx - hw * 0.36, top + hh * (fr - 0.06), hcx - hw * 0.47, top + hh * 0.34);
+  ctx.closePath();
+  ctx.fill();
+  stroke();
+  // a faint under-edge shadow gives the fringe depth without hard teeth
+  ctx.strokeStyle = `rgba(20,12,10,0.18)`;
+  ctx.lineWidth = Math.max(0.8, hw * 0.02);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(hcx + hw * 0.24, top + hh * (fr + 0.02));
+  ctx.quadraticCurveTo(hcx + hw * 0.1, top + hh * (fr - 0.03), hcx + hw * 0.02, top + hh * (fr + 0.04));
+  ctx.stroke();
 
   // Keep short hair above the ears only. Long cheek-side blocks read as a beard
   // on the small male sprites, so boys/men stay clean-shaven.
@@ -1658,7 +1696,7 @@ function drawHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
 
 function drawFace(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: number, hh: number, look: AvatarLook): void {
   const big = look.child;
-  const iris = look.elder ? "#6b6b74" : "#3b6f9d";
+  const iris = look.elder ? "#6b6b74" : (look.iris ?? "#3b6f9d");
   const lip = look.gender === "female" ? "#d9707f" : "#8c5c52";
   const skinD = shade(look.skin, 26);
   const eyeR = hw * (big ? 0.13 : 0.095);
@@ -1678,21 +1716,30 @@ function drawFace(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
     ellipse(ctx, ex + s * eyeR * 0.12, eyeY + eyeR * 0.18, eyeR * 0.32, eyeR * 0.58, shade(iris, 38));
     ellipse(ctx, ex, eyeY + eyeR * 0.22, eyeR * 0.34, eyeR * 0.43, "#1b1622");
     ellipse(ctx, ex - eyeR * 0.3, eyeY - eyeR * 0.3, eyeR * 0.22, eyeR * 0.22, "#ffffff");
-    // upper eyelid — a lash-line arc over the eye makes it read as a real eye
-    ctx.strokeStyle = "rgba(44,28,30,0.85)";
-    ctx.lineWidth = Math.max(1, eyeR * 0.24);
+    // upper eyelid — a light lash-line (a heavy one ringed the eyes like a panda)
+    ctx.strokeStyle = "rgba(58,36,32,0.72)";
+    ctx.lineWidth = Math.max(0.9, eyeR * 0.15);
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.arc(ex, eyeY + eyeR * 0.06, eyeR * 1.02, Math.PI * 1.12, Math.PI * 1.88);
+    ctx.arc(ex, eyeY + eyeR * 0.02, eyeR * 1.0, Math.PI * 1.15, Math.PI * 1.85);
     ctx.stroke();
-    // brow
+    // the faintest lower-lid hint completes the eye without hardening it
+    ctx.strokeStyle = "rgba(140,90,80,0.3)";
+    ctx.lineWidth = Math.max(0.7, eyeR * 0.09);
+    ctx.beginPath();
+    ctx.arc(ex, eyeY + eyeR * 0.18, eyeR * 1.0, Math.PI * 0.25, Math.PI * 0.75);
+    ctx.stroke();
+    // brow — slimmer and softer than the old heavy black bar
     ctx.strokeStyle = hairD;
-    ctx.lineWidth = hw * 0.036;
+    ctx.save();
+    ctx.globalAlpha = 0.9;
+    ctx.lineWidth = hw * (look.gender === "female" ? 0.022 : 0.028);
     ctx.lineCap = "round";
     ctx.beginPath();
-    ctx.moveTo(ex - eyeR * 1.15, eyeY - eyeR * 1.48);
-    ctx.quadraticCurveTo(ex, eyeY - eyeR * (look.elder ? 1.44 : 1.82), ex + eyeR * 1.15, eyeY - eyeR * 1.5);
+    ctx.moveTo(ex - eyeR * 1.05, eyeY - eyeR * 1.48);
+    ctx.quadraticCurveTo(ex, eyeY - eyeR * (look.elder ? 1.44 : 1.8), ex + eyeR * 1.05, eyeY - eyeR * 1.52);
     ctx.stroke();
+    ctx.restore();
     if (look.gender === "female" && !look.elder) {
       ctx.strokeStyle = "rgba(44,28,30,0.7)";
       ctx.lineWidth = Math.max(1, eyeR * 0.16);
@@ -1704,23 +1751,36 @@ function drawFace(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
       }
     }
   }
-  // nose
+  // nose — one soft curved side-line with a hint of nostril shadow (the old
+  // hard 3-point hook read as a drawn-on beak)
+  ctx.save();
+  ctx.globalAlpha = 0.75;
   ctx.strokeStyle = skinD;
-  ctx.lineWidth = hw * 0.032;
+  ctx.lineWidth = hw * 0.026;
   ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(hcx + hw * 0.01, eyeY + eyeR * 0.55);
-  ctx.lineTo(hcx + hw * 0.035, eyeY + hh * 0.16);
-  ctx.lineTo(hcx - hw * 0.015, eyeY + hh * 0.19);
+  ctx.moveTo(hcx + hw * 0.012, eyeY + eyeR * 0.6);
+  ctx.quadraticCurveTo(hcx + hw * 0.038, eyeY + hh * 0.115, hcx + hw * 0.02, eyeY + hh * 0.155);
   ctx.stroke();
-  // mouth (gentle smile)
-  ctx.strokeStyle = lip;
-  ctx.lineWidth = hw * (big ? 0.06 : 0.046);
-  ctx.lineCap = "round";
+  ctx.globalAlpha = 0.45;
+  ctx.lineWidth = hw * 0.02;
+  ctx.beginPath();
+  ctx.arc(hcx - hw * 0.012, eyeY + hh * 0.165, hw * 0.032, Math.PI * 0.15, Math.PI * 0.9);
+  ctx.stroke();
+  ctx.restore();
+  // mouth — two-tone lips: a smile line plus a soft lower-lip fill
   const mouthY = eyeY + hh * (big ? 0.14 : 0.155);
+  ctx.strokeStyle = lip;
+  ctx.lineWidth = hw * (big ? 0.05 : 0.038);
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.arc(hcx, mouthY, hw * 0.2, 0.18 * Math.PI, 0.82 * Math.PI);
+  ctx.arc(hcx, mouthY, hw * 0.19, 0.2 * Math.PI, 0.8 * Math.PI);
   ctx.stroke();
+  // lower lip catches the light just under the smile line
+  ctx.save();
+  ctx.globalAlpha = look.gender === "female" ? 0.8 : 0.4;
+  ellipse(ctx, hcx, mouthY + hw * 0.225, hw * 0.1, hh * (big ? 0.035 : 0.028), tint(lip, look.gender === "female" ? 20 : 34));
+  ctx.restore();
   ctx.strokeStyle = "rgba(85,45,48,0.35)";
   ctx.lineWidth = Math.max(0.8, hw * 0.014);
   ctx.beginPath();
@@ -1728,11 +1788,11 @@ function drawFace(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
   ctx.quadraticCurveTo(hcx, mouthY - hh * 0.005, hcx + hw * 0.12, mouthY - hh * 0.018);
   ctx.stroke();
   if (look.gender === "female" || big) {
-    ctx.strokeStyle = "rgba(255,255,255,0.45)";
-    ctx.lineWidth = Math.max(0.8, hw * 0.014);
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = Math.max(0.8, hw * 0.013);
     ctx.beginPath();
-    ctx.moveTo(hcx - hw * 0.06, mouthY + hh * 0.02);
-    ctx.lineTo(hcx + hw * 0.06, mouthY + hh * 0.02);
+    ctx.moveTo(hcx - hw * 0.05, mouthY + hw * 0.21);
+    ctx.lineTo(hcx + hw * 0.05, mouthY + hw * 0.21);
     ctx.stroke();
   }
   // blush

@@ -1416,6 +1416,7 @@ export class Game {
   private cooldown = 0;
   private foodCooldown = 0;
   private trayTipShown = false; // the "collect items" guidance shows in the sky once per life, not in the tray
+  private autoHealCd = 0; // min seconds between automatic low-health tray meals
   private hintTimer = 0;
 
   private transitionTimer = 0;
@@ -1671,6 +1672,7 @@ export class Game {
     this.eventCooldown = 2;
     this.foodCooldown = 0;
     this.trayTipShown = false;
+    this.autoHealCd = 0;
     this.usedEvents = new Set();
     this.inventory = [];
     this.selectedInventory = 0;
@@ -2430,6 +2432,11 @@ export class Game {
     const badSocial = this.isBadSocialOption(opt);
 
     const eff: Partial<Stats> = { ...opt.effects };
+    // healthy choices pay off faster: eating well and exercising build health
+    // at 1.6x so a good routine visibly beats decay
+    if ((opt.category === "food" || opt.category === "health") && (eff.health ?? 0) > 0) {
+      eff.health = Math.round(eff.health! * 1.6);
+    }
     // IQ never jumps. Risky peer pressure gets a stronger visible penalty than
     // ordinary distractions, but it is still capped to avoid one-contact ruin.
     if (eff.smarts !== undefined) {
@@ -3091,11 +3098,30 @@ export class Game {
   private update(dt: number): void {
     if (this.cooldown > 0) this.cooldown -= dt;
     if (this.foodCooldown > 0) this.foodCooldown = Math.max(0, this.foodCooldown - dt);
+    if (this.autoHealCd > 0) this.autoHealCd = Math.max(0, this.autoHealCd - dt);
     if (this.mode === "playing") this.tickFoodFreshness(dt);
     if (this.mode === "playing" && !this.trayTipShown && this.inventory.length === 0) {
       // first playing moment with an empty tray: nudge once — in the sky, not the tray
       this.showSkyTip("🧺 Collect green items — swipe up to eat, or stand by someone to give");
       this.trayTipShown = true;
+    }
+    // health slipping below average? the tray helps by itself — eat the
+    // healthiest collected food automatically
+    if (this.mode === "playing" && this.stats.health < 50 && this.autoHealCd <= 0) {
+      let best = -1;
+      let bestGain = 0;
+      for (let i = 0; i < this.inventory.length; i++) {
+        const slot = this.inventory[i];
+        const gain = slot.opt.category === "food" ? (slot.opt.effects.health ?? 0) : 0;
+        if (gain > bestGain) { bestGain = gain; best = i; }
+      }
+      if (best >= 0) {
+        this.autoHealCd = 7;
+        this.autoEatFood(best);
+        if (this.mode === "playing" && this.skyMessage) {
+          this.skyMessage.text = `❤️ Low health — ${this.skyMessage.text}`;
+        }
+      }
     }
     if (this.hintTimer > 0) {
       this.hintTimer -= dt;
@@ -3538,17 +3564,20 @@ export class Game {
     }
   }
 
-  private familyTreeGateY(): number {
+  // Assets + Family Tree live at the TOP RIGHT of the social area now
+  // (Training keeps its spot on the left).
+  private assetsGateY(): number {
     const social = this.zoneBounds("social");
-    return Math.round(Math.max(social.min + TRAINING_GATE_R + UTILITY_GATE_GAP * 2 + 8, social.max - 26));
+    return Math.round(social.min + 44);
   }
 
-  private assetsGateY(): number {
-    return this.familyTreeGateY() - UTILITY_GATE_GAP;
+  private familyTreeGateY(): number {
+    return this.assetsGateY() + UTILITY_GATE_GAP;
   }
 
   private trainingGateY(): number {
-    return this.assetsGateY() - UTILITY_GATE_GAP;
+    const social = this.zoneBounds("social");
+    return Math.round(social.max - 26);
   }
 
   private canShowFamilyTreeGate(): boolean {
@@ -3569,11 +3598,11 @@ export class Game {
   }
 
   private nearFamilyTreeGate(): boolean {
-    return this.hitCircle(this.px, this.py - 8, UTILITY_GATE_X, this.familyTreeGateY(), FAMILY_TREE_GATE_R + 22);
+    return this.hitCircle(this.px, this.py - 8, W - 58, this.familyTreeGateY(), FAMILY_TREE_GATE_R + 22);
   }
 
   private nearAssetsGate(): boolean {
-    return this.hitCircle(this.px, this.py - 8, UTILITY_GATE_X, this.assetsGateY(), ASSETS_GATE_R + 22);
+    return this.hitCircle(this.px, this.py - 8, W - 58, this.assetsGateY(), ASSETS_GATE_R + 22);
   }
 
   private nearTrainingGate(): boolean {
@@ -3597,8 +3626,8 @@ export class Game {
     const assetsY = this.assetsGateY();
     const trainingY = this.trainingGateY();
     if (canTraining) this.drawUtilityGate(ctx, UTILITY_GATE_X, trainingY, TRAINING_GATE_R, "Training", "🏫", "#5db8ff", t);
-    if (canAssets) this.drawUtilityGate(ctx, UTILITY_GATE_X, assetsY, ASSETS_GATE_R, "Assets", "💼", "#7ed957", t);
-    if (canFamilyTree) this.drawUtilityGate(ctx, UTILITY_GATE_X, familyY, FAMILY_TREE_GATE_R, "Family Tree", "🌳", "#ffd23f", t);
+    if (canAssets) this.drawUtilityGate(ctx, W - 58, assetsY, ASSETS_GATE_R, "Assets", "💼", "#7ed957", t);
+    if (canFamilyTree) this.drawUtilityGate(ctx, W - 58, familyY, FAMILY_TREE_GATE_R, "Family Tree", "🌳", "#ffd23f", t);
   }
 
   private drawTrainingSchoolGate(ctx: CanvasRenderingContext2D, x: number, y: number, t: number): void {
@@ -5312,25 +5341,24 @@ export class Game {
   }
 
   private setupGenderAvatar(gender: Gender, heritage: HeritageStyle): string {
-    const look = avatarLook(0, gender, heritage);
-    const kind = gender === "female" ? "female" : "male";
-    return `
-      <span class="plj-gender-face plj-setup-avatar is-${kind} is-${look.hairTexture}" aria-hidden="true" style="--plj-setup-skin:${look.skin};--plj-setup-hair:${look.hair};--plj-setup-shirt:${look.shirt}">
-        <span class="plj-setup-body"></span>
-        <span class="plj-setup-hair"></span>
-        <span class="plj-setup-head">
-          <span class="plj-setup-eye is-left"></span>
-          <span class="plj-setup-eye is-right"></span>
-          <span class="plj-setup-mouth"></span>
-        </span>
-        <span class="plj-setup-fringe"></span>
-      </span>`;
+    // Render the REAL in-game character (teen stage, front view) to a small
+    // canvas — the Boy/Girl choices now look exactly like the person you play.
+    const look = avatarLook(5, gender, heritage);
+    const cw = 96;
+    const ch = 172;
+    const cv = document.createElement("canvas");
+    cv.width = cw * 2;
+    cv.height = ch * 2;
+    const cctx = cv.getContext("2d")!;
+    cctx.scale(2, 2);
+    drawAvatar(cctx, cw / 2, ch - 6, look, 0, { moving: false, facing: "front", verticalBias: 0 });
+    return `<img class="plj-setup-avatar-img" alt="" src="${cv.toDataURL("image/png")}">`;
   }
 
   private refreshSetupGenderPreviews(heritage: HeritageStyle): void {
     this.ui.overlay.querySelectorAll<HTMLButtonElement>(".plj-gender").forEach((btn) => {
       const gender: Gender = btn.dataset.g === "female" ? "female" : "male";
-      const avatar = btn.querySelector<HTMLElement>(".plj-setup-avatar");
+      const avatar = btn.querySelector<HTMLElement>(".plj-setup-avatar-img");
       if (avatar) avatar.outerHTML = this.setupGenderAvatar(gender, heritage);
     });
   }
@@ -5996,12 +6024,12 @@ export class Game {
         this.showTraining();
         return;
       }
-      if (this.canShowAssetsGate() && this.hitCircle(p.x, p.y, UTILITY_GATE_X, this.assetsGateY(), ASSETS_GATE_R + 8)) {
+      if (this.canShowAssetsGate() && this.hitCircle(p.x, p.y, W - 58, this.assetsGateY(), ASSETS_GATE_R + 8)) {
         e.preventDefault();
         this.showAssets();
         return;
       }
-      if (this.canShowFamilyTreeGate() && this.hitCircle(p.x, p.y, UTILITY_GATE_X, this.familyTreeGateY(), FAMILY_TREE_GATE_R + 8)) {
+      if (this.canShowFamilyTreeGate() && this.hitCircle(p.x, p.y, W - 58, this.familyTreeGateY(), FAMILY_TREE_GATE_R + 8)) {
         e.preventDefault();
         this.showFamilyTree();
       }

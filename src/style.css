@@ -2113,3 +2113,11 @@ body {
     object-fit: contain;
   }
 }
+
+/* the setup page Boy/Girl choices show the real rendered character */
+.plj-setup-avatar-img {
+  display: block;
+  width: 58px;
+  height: auto;
+  margin: 0 auto 4px;
+}

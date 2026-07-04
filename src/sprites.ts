@@ -1077,7 +1077,7 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   // head rides nearly ABOVE the torso — a big forward offset made everyone
   // look hunched with a long craned neck
   const headCx = cx + dir * H * 0.034 + lean * 0.55 + stoop * 0.5;
-  const headCy = neckTopY - headH / 2 + headH * 0.105;
+  const headCy = neckTopY - headH / 2 + headH * 0.17; // jaw overlaps the neck — no floating head
   const torsoCx = cx + dir * H * 0.02 + lean * 0.18;
   const shoulderY = torsoTopY + headH * 0.14;
   const handY = torsoTopY + torsoH * 0.94;
@@ -1140,8 +1140,8 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
   const neckBottomY = torsoTopY + headH * 0.1;
   ctx.fillStyle = shade(look.skin, 20);
   ctx.beginPath();
-  ctx.moveTo(neckTopX - neckH * 0.32, neckTopY + 1);
-  ctx.lineTo(neckTopX + neckH * 0.32, neckTopY + 1);
+  ctx.moveTo(neckTopX - neckH * 0.44, neckTopY - neckH * 0.45);
+  ctx.lineTo(neckTopX + neckH * 0.44, neckTopY - neckH * 0.45);
   ctx.lineTo(neckBottomX + neckH * 0.42, neckBottomY);
   ctx.lineTo(neckBottomX - neckH * 0.42, neckBottomY);
   ctx.closePath();
@@ -3467,8 +3467,20 @@ export function drawPet(ctx: CanvasRenderingContext2D, x: number, footY: number,
   ctx.strokeStyle = OUTLINE;
   ctx.stroke();
   if (dog) {
-    ellipse(ctx, sx + 11, sy - 41, 5, 9, ear);
-    ellipse(ctx, sx + 24, sy - 41, 5, 9, ear);
+    // floppy ears hang BESIDE the head (not on top like a teddy), plus a
+    // proper muzzle with a wet nose, a happy tongue and a red collar
+    ellipse(ctx, sx + 7, sy - 33, 5.5, 10.5, ear);
+    ellipse(ctx, sx + 28, sy - 34, 5, 9.5, shade(ear, 12));
+    ellipse(ctx, sx + 28, sy - 26.5, 8.5, 6, furLight);
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 1.6;
+    ctx.beginPath();
+    ctx.ellipse(sx + 28, sy - 26.5, 8.5, 6, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ellipse(ctx, sx + 34.5, sy - 28.5, 3.2, 2.6, "#2a2024");
+    ellipse(ctx, sx + 30, sy - 20.5, 2.6, 3.2, "#ff8f9f");
+    px(ctx, sx + 7, sy - 23, 13, 3.4, "#e5484d");
+    ellipse(ctx, sx + 13.5, sy - 19.5, 2, 2, "#ffd23f");
   } else {
     ctx.fillStyle = OUTLINE;
     ctx.beginPath();
@@ -3495,7 +3507,7 @@ export function drawPet(ctx: CanvasRenderingContext2D, x: number, footY: number,
   }
   ellipse(ctx, sx + 14, sy - 33, 1.7, 2.2, "#20161c");
   ellipse(ctx, sx + 24, sy - 33, 1.7, 2.2, "#20161c");
-  ellipse(ctx, sx + 19, sy - 28, 3.2, 2.2, "#20161c");
+  if (!dog) ellipse(ctx, sx + 19, sy - 28, 3.2, 2.2, "#20161c");
   if (!dog) {
     ctx.strokeStyle = "#20161c";
     ctx.lineWidth = 1;

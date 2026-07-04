@@ -68,7 +68,11 @@ export type UpperSceneKind =
   | "campusIndoor"
   | "campusOutdoor"
   | "officeIndoor"
-  | "officeOutdoor";
+  | "officeOutdoor"
+  | "mountain"
+  | "beach"
+  | "ship"
+  | "flowerField";
 
 /** A "try your luck" choice: spend a stake for a chance at a payout (all in $). */
 export interface GambleSpec {

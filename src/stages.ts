@@ -82,7 +82,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 2–3. Curious and wobbly. Everything is new!",
     theme: themes.play,
     scene: "playroom",
-    upperScenes: ["park", "amusementPark"],
+    upperScenes: ["park", "flowerField", "amusementPark"],
     options: [
       { id: "fruit", label: "Fruit", icon: "🍓", desc: "Healthy fruit snacks — great for a growing body.", category: "food", effects: { health: 8 }, storyTag: "veggies" },
       { id: "candy", label: "Candy", icon: "🍬", desc: "Sweet treats. A little sugary, but lovely to share with a friend.", category: "food", effects: { fun: 8, health: -3 }, storyTag: "junkfood", treat: true },
@@ -105,7 +105,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 3–7. Play, stories and your first big questions.",
     theme: themes.yard,
     scene: "playroom",
-    upperScenes: ["park", "amusementPark"],
+    upperScenes: ["park", "flowerField", "amusementPark"],
     options: [
       { id: "books", label: "Story books", icon: "📚", desc: "Picture books spark imagination and early smarts.", category: "smarts", effects: { smarts: 8, happiness: 2 }, storyTag: "read" },
       { id: "veg", label: "Veggies", icon: "🥦", desc: "Eat your vegetables — fuel for a healthy body.", category: "food", effects: { health: 8 }, storyTag: "veggies" },
@@ -127,7 +127,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 7–11. Reading, recess and your first report card.",
     theme: themes.school,
     scene: "school",
-    upperScenes: ["schoolOutdoor", "amusementPark"],
+    upperScenes: ["schoolOutdoor", "mountain", "amusementPark"],
     options: [
       { id: "study", label: "Study", icon: "📖", desc: "Do your homework. Smarts open doors later.", category: "smarts", effects: { smarts: 9, fun: -2 }, storyTag: "study" },
       { id: "sports", label: "Sports", icon: "⚽", desc: "Join a sports team — healthy and social.", category: "health", effects: { health: 8, fun: 3 }, storyTag: "sports" },
@@ -151,7 +151,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 11–14. Bigger ideas, big feelings, late nights.",
     theme: themes.teen,
     scene: "school",
-    upperScenes: ["schoolIndoor", "schoolOutdoor"],
+    upperScenes: ["schoolIndoor", "schoolOutdoor", "mountain"],
     options: [
       { id: "study", label: "Study hard", icon: "📚", desc: "Hit the books. Builds real smarts for high school.", category: "smarts", effects: { smarts: 9, fun: -3 }, storyTag: "study" },
       { id: "sports", label: "Sports", icon: "🏀", desc: "Team sports — fit body, happy mind.", category: "health", effects: { health: 8, happiness: 3 }, storyTag: "sports" },
@@ -175,7 +175,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 14–18. Exams, parties, first love and big choices.",
     theme: themes.school,
     scene: "school",
-    upperScenes: ["schoolIndoor", "schoolOutdoor"],
+    upperScenes: ["schoolIndoor", "schoolOutdoor", "beach"],
     options: [
       { id: "exams", label: "Study club", icon: "📝", person: "studyFriend", desc: "Meet classmates who keep each other focused. Smarts now decide your future — but it's draining.", category: "smarts", effects: { smarts: 10, fun: -3, happiness: 1 }, storyTag: "study" },
       { id: "party", label: "Party", icon: "🎉", desc: "Party with friends. Wild fun — but it costs sleep and cash (no money, no party).", category: "fun", effects: { fun: 9, happiness: 4, health: -4 }, cost: 1200, storyTag: "party" },
@@ -206,7 +206,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 18–22. Freedom, all-nighters, and who you'll become.",
     theme: themes.campus,
     scene: "campus",
-    upperScenes: ["campusIndoor", "campusOutdoor"],
+    upperScenes: ["campusIndoor", "campusOutdoor", "beach"],
     options: [
       { id: "lectures", label: "Study club", icon: "🎓", person: "studyFriend", desc: "Join a serious study group. A degree pays off for life.", category: "smarts", effects: { smarts: 10, fun: -2, happiness: 1 }, storyTag: "study" },
       { id: "intern", label: "Internship", icon: "💼", desc: "Intern in your field — experience plus a pay cheque.", category: "wealth", effects: { smarts: 4, fun: -3 }, earn: 6000, scalesWithSmarts: true, storyTag: "internship" },
@@ -238,7 +238,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 22–30. Building a career. Mind the work–life balance!",
     theme: themes.office,
     scene: "office",
-    upperScenes: ["officeIndoor", "officeOutdoor"],
+    upperScenes: ["officeIndoor", "officeOutdoor", "mountain"],
     isCareer: true,
     options: [
       { id: "overtime", label: "Overtime grind", icon: "⏰", desc: "Work 60-hour weeks. Big money — but it burns out your health, fun and joy.", category: "wealth", effects: { health: -7, fun: -6, happiness: -4 }, earn: 42000, scalesWithSmarts: true, storyTag: "overtime" },
@@ -267,7 +267,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 30–36. Settle down, build a family, and grow together.",
     theme: themes.home,
     scene: "home",
-    upperScenes: ["officeIndoor", "officeOutdoor"],
+    upperScenes: ["ship", "beach", "officeIndoor"],
     isMarriage: true,
     atHome: true,
     options: [
@@ -291,7 +291,7 @@ export const STAGES: Stage[] = [
     blurb: "Ages 36–55. Career peak and family — but the body needs care now.",
     theme: themes.mid,
     scene: "home",
-    upperScenes: ["officeIndoor", "officeOutdoor"],
+    upperScenes: ["officeIndoor", "officeOutdoor", "ship"],
     atHome: true,
     options: [
       { id: "career", label: "Career peak", icon: "⏰", desc: "Climb to the top. Great money, hard on an aging body.", category: "wealth", effects: { health: -6, fun: -4 }, earn: 60000, scalesWithSmarts: true, storyTag: "overtime" },
@@ -317,6 +317,7 @@ export const STAGES: Stage[] = [
     emoji: "👴",
     ageStart: 55,
     ageEnd: 70,
+    upperScenes: ["park", "mountain", "flowerField"],
     blurb: "Ages 55–70. Slow down, savour family, and protect your health.",
     theme: themes.senior,
     scene: "home",
@@ -343,6 +344,7 @@ export const STAGES: Stage[] = [
     emoji: "🌅",
     ageStart: 70,
     ageEnd: 82,
+    upperScenes: ["flowerField", "beach", "ship"],
     blurb: "Ages 70+. The reward for a life well lived. Enjoy every day.",
     theme: themes.sunset,
     scene: "sunset",

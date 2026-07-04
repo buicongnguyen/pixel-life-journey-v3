@@ -1469,6 +1469,9 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   drawEar(ctx, hcx - dir * hw * 0.18, hcy + hh * 0.06, hw * 0.1, hh * 0.13, skin, true);
 
   // Compact cap and bangs: enough to show direction without hiding the face.
+  // (Bald grandpa skips the crown cap — he keeps the nape hair + a comb-over.)
+  const baldSide = look.elder && look.hairStyle === "short";
+  if (!baldSide) {
   ctx.fillStyle = hair;
   ctx.beginPath();
   ctx.moveTo(hcx - dir * headRx * 0.92, hcy - headRy * 0.05);
@@ -1481,6 +1484,18 @@ function drawSideHead(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, h
   ctx.strokeStyle = OUTLINE;
   ctx.lineWidth = OUTLINE_W;
   ctx.stroke();
+  } else {
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = hair;
+    ctx.lineWidth = Math.max(1, hw * 0.03);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(hcx - dir * hw * 0.28, top + hh * 0.1);
+    ctx.quadraticCurveTo(hcx, top + hh * 0.0, hcx + dir * hw * 0.22, top + hh * 0.1);
+    ctx.stroke();
+    ctx.restore();
+  }
 
   // hair continues down the BACK of the skull to the nape — the crown-only cap
   // left bare skin behind the ear, which read as a swim cap
@@ -1638,6 +1653,36 @@ function drawHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
   // NOTE: the long-hair back layer is drawn earlier, BEHIND the head (drawBackHair),
   // so it never paints over the face.
 
+  // Grandpa: a bald crown with a white horseshoe at the sides and a thin
+  // comb-over — the full cap read as grandma's coif on him.
+  if (look.elder && !longHair && look.hairStyle !== "bun") {
+    ctx.fillStyle = hair;
+    for (const sgn of [-1, 1]) {
+      ctx.beginPath();
+      ctx.moveTo(hcx + sgn * hw * 0.33, top + hh * 0.28);
+      ctx.quadraticCurveTo(hcx + sgn * hw * 0.62, top + hh * 0.26, hcx + sgn * hw * 0.54, top + hh * 0.6);
+      ctx.quadraticCurveTo(hcx + sgn * hw * 0.42, top + hh * 0.56, hcx + sgn * hw * 0.35, top + hh * 0.42);
+      ctx.closePath();
+      ctx.fill();
+      stroke();
+    }
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.strokeStyle = hair;
+    ctx.lineWidth = Math.max(1, hw * 0.035);
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(hcx - hw * 0.3, top + hh * 0.16);
+    ctx.quadraticCurveTo(hcx, top + hh * 0.02, hcx + hw * 0.3, top + hh * 0.15);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(hcx - hw * 0.24, top + hh * 0.25);
+    ctx.quadraticCurveTo(hcx, top + hh * 0.13, hcx + hw * 0.24, top + hh * 0.24);
+    ctx.stroke();
+    ctx.restore();
+    return;
+  }
+
   // main hair cap with volume above the crown
   ctx.fillStyle = hair;
   ctx.beginPath();
@@ -1653,7 +1698,8 @@ function drawHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
   // fringe over the forehead — ONE soft scalloped band (the old per-lock teeth
   // read as dark spikes hanging over the face). A single silhouette outline,
   // gentle waves along the lower edge, and a natural side part.
-  const fr = look.elder ? 0.14 : longHair ? 0.3 : 0.19; // fringe depth below the crown
+  const fr = longHair ? 0.3 : 0.19; // fringe depth below the crown
+  if (!look.elder) {
   ctx.fillStyle = hair;
   ctx.beginPath();
   ctx.moveTo(hcx - hw * 0.47, top + hh * 0.34);
@@ -1676,6 +1722,7 @@ function drawHair(ctx: CanvasRenderingContext2D, hcx: number, hcy: number, hw: n
   ctx.moveTo(hcx + hw * 0.24, top + hh * (fr + 0.02));
   ctx.quadraticCurveTo(hcx + hw * 0.1, top + hh * (fr - 0.03), hcx + hw * 0.02, top + hh * (fr + 0.04));
   ctx.stroke();
+  }
 
   // Keep short hair above the ears only. Long cheek-side blocks read as a beard
   // on the small male sprites, so boys/men stay clean-shaven.
@@ -2355,6 +2402,18 @@ function drawSocialArea(ctx: CanvasRenderingContext2D, W: number, top: number, b
     case "officeOutdoor":
       drawOfficeOutdoorArea(ctx, W, top, bottom, t);
       return;
+    case "mountain":
+      drawMountainArea(ctx, W, top, bottom, t);
+      return;
+    case "beach":
+      drawBeachArea(ctx, W, top, bottom, t);
+      return;
+    case "ship":
+      drawShipDeckArea(ctx, W, top, bottom, t);
+      return;
+    case "flowerField":
+      drawFlowerFieldArea(ctx, W, top, bottom, t);
+      return;
     case "park":
     default:
       drawOutdoorParkArea(ctx, W, top, bottom, t);
@@ -2531,6 +2590,293 @@ function drawBalloonStand(ctx: CanvasRenderingContext2D, x: number, y: number, t
     const by = y - 4 - (i % 2) * 11 + Math.sin(t * 2 + i) * 1.5;
     limb(ctx, x, y + 12, bx, by + 9, 1.1, "rgba(80,60,80,0.55)");
     ellipse(ctx, bx, by, 7, 9, ["#ff6f91", "#ffd23f", "#74d6ff", "#8ff0a4", "#ad7cff"][i]);
+  }
+}
+
+function drawMountainArea(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, t: number): void {
+  // sky band scales with the area height so the peaks read even in short zones
+  const horizon = Math.round(top + Math.max(36, Math.min(84, (bottom - top) * 0.4)));
+  const sky = ctx.createLinearGradient(0, top, 0, horizon);
+  sky.addColorStop(0, "#8fd0ff");
+  sky.addColorStop(1, "#e6f6ff");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, top, W, horizon - top);
+  ellipse(ctx, 64, top + 22, 15, 15, "#fff2b0");
+  // far hazy ridge
+  ctx.fillStyle = "#8aa8c8";
+  ctx.beginPath();
+  ctx.moveTo(0, horizon);
+  ctx.lineTo(W * 0.12, top + 40);
+  ctx.lineTo(W * 0.3, horizon - 12);
+  ctx.lineTo(W * 0.5, top + 34);
+  ctx.lineTo(W * 0.72, horizon - 10);
+  ctx.lineTo(W * 0.88, top + 44);
+  ctx.lineTo(W, horizon);
+  ctx.closePath();
+  ctx.fill();
+  // near peaks with snow caps
+  for (const [pk, py] of [[W * 0.18, top + 6], [W * 0.46, top + 0], [W * 0.74, top + 10], [W * 0.95, top + 16]] as const) {
+    ctx.fillStyle = "#5f7ba0";
+    ctx.beginPath();
+    ctx.moveTo(pk - W * 0.18, horizon);
+    ctx.lineTo(pk, py);
+    ctx.lineTo(pk + W * 0.18, horizon);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = "#f6fbff";
+    ctx.beginPath();
+    ctx.moveTo(pk - W * 0.045, py + 24);
+    ctx.lineTo(pk, py);
+    ctx.lineTo(pk + W * 0.045, py + 24);
+    ctx.lineTo(pk + W * 0.02, py + 18);
+    ctx.lineTo(pk - W * 0.012, py + 25);
+    ctx.closePath();
+    ctx.fill();
+  }
+  // alpine meadow
+  const ground = ctx.createLinearGradient(0, horizon, 0, bottom);
+  ground.addColorStop(0, "#9ed989");
+  ground.addColorStop(1, "#5faf6d");
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, horizon, W, bottom - horizon);
+  px(ctx, 0, horizon - 2, W, 5, "#b9e6a0");
+  for (let x = 30; x < W; x += 92) drawPixelTree(ctx, x, horizon + 30 + (x % 3) * 7, 0.8, x);
+  drawFlowerPatch(ctx, 90, horizon + 62, 5);
+  // a small wooden cabin
+  const cx0 = W - 158;
+  const cy0 = horizon + 44;
+  px(ctx, cx0, cy0, 74, 40, "#8a6a4a");
+  px(ctx, cx0 + 8, cy0 + 14, 16, 26, "#5d4530");
+  px(ctx, cx0 + 44, cy0 + 12, 18, 14, "#cfe8f2");
+  ctx.fillStyle = "#6d4f36";
+  ctx.beginPath();
+  ctx.moveTo(cx0 - 8, cy0);
+  ctx.lineTo(cx0 + 37, cy0 - 24);
+  ctx.lineTo(cx0 + 82, cy0);
+  ctx.closePath();
+  ctx.fill();
+  // drifting birds
+  ctx.strokeStyle = "rgba(40,60,80,0.6)";
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 3; i++) {
+    const bx = ((t * 14 + i * 150) % (W + 60)) - 30;
+    const by = top + 24 + i * 12 + Math.sin(t * 2 + i) * 3;
+    ctx.beginPath();
+    ctx.moveTo(bx - 5, by);
+    ctx.quadraticCurveTo(bx - 2, by - 4, bx, by);
+    ctx.quadraticCurveTo(bx + 2, by - 4, bx + 5, by);
+    ctx.stroke();
+  }
+}
+
+function drawBeachArea(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, t: number): void {
+  // bands scale with the area height — the sea must survive short zones
+  const seaTop = Math.round(top + Math.max(20, Math.min(42, (bottom - top) * 0.16)));
+  const sandTop = Math.round(Math.max(seaTop + 30, top + Math.min(122, (bottom - top) * 0.55)));
+  const sky = ctx.createLinearGradient(0, top, 0, seaTop);
+  sky.addColorStop(0, "#7fd4f2");
+  sky.addColorStop(1, "#eafaff");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, top, W, seaTop - top);
+  ellipse(ctx, W - 70, top + 20, 16, 16, "#ffe27a");
+  // open sea
+  const sea = ctx.createLinearGradient(0, seaTop, 0, sandTop);
+  sea.addColorStop(0, "#2f9fd8");
+  sea.addColorStop(1, "#6cc7ea");
+  ctx.fillStyle = sea;
+  ctx.fillRect(0, seaTop, W, sandTop - seaTop);
+  // a little sailboat drifting by
+  const sbx = ((t * 9) % (W + 140)) - 70;
+  const sby = seaTop + 20;
+  ctx.fillStyle = "#7a4c2e";
+  ctx.beginPath();
+  ctx.moveTo(sbx - 16, sby + 8);
+  ctx.lineTo(sbx + 16, sby + 8);
+  ctx.lineTo(sbx + 10, sby + 15);
+  ctx.lineTo(sbx - 10, sby + 15);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.beginPath();
+  ctx.moveTo(sbx, sby + 6);
+  ctx.lineTo(sbx, sby - 16);
+  ctx.lineTo(sbx + 13, sby + 4);
+  ctx.closePath();
+  ctx.fill();
+  // animated wave glints
+  for (let r = 0; r < 3; r++) {
+    const wy = seaTop + 16 + r * 20;
+    for (let x = -30; x < W; x += 46) {
+      const shift = Math.sin(t * 1.6 + r) * 8;
+      px(ctx, x + shift + r * 12, wy, 20, 2, "rgba(255,255,255,0.35)");
+    }
+  }
+  // sand with a foam edge
+  const sand = ctx.createLinearGradient(0, sandTop, 0, bottom);
+  sand.addColorStop(0, "#f7e3b0");
+  sand.addColorStop(1, "#e3c084");
+  ctx.fillStyle = sand;
+  ctx.fillRect(0, sandTop, W, bottom - sandTop);
+  for (let x = -20; x < W; x += 34) {
+    const foamShift = Math.sin(t * 1.8 + x * 0.05) * 3;
+    px(ctx, x, sandTop + foamShift, 26, 4, "rgba(255,255,255,0.75)");
+  }
+  // beach umbrella + ball + starfish
+  const ux = 96;
+  const uy = sandTop + 34;
+  px(ctx, ux - 2, uy - 26, 4, 52, "#8a6a4a");
+  ctx.fillStyle = "#ff6f7d";
+  ctx.beginPath();
+  ctx.arc(ux, uy - 24, 34, Math.PI, 0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#fff4f5";
+  for (const a0 of [Math.PI * 1.16, Math.PI * 1.52, Math.PI * 1.88] as const) {
+    ctx.beginPath();
+    ctx.moveTo(ux, uy - 24);
+    ctx.arc(ux, uy - 24, 34, a0, a0 + Math.PI * 0.16);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ellipse(ctx, ux + 52, uy + 20, 11, 11, "#ffd23f");
+  ellipse(ctx, ux + 48, uy + 17, 5, 5, "#ff6f7d");
+  ellipse(ctx, W - 120, bottom - 26, 7, 7, "#ff9a62");
+  // gulls
+  ctx.strokeStyle = "rgba(70,90,110,0.65)";
+  ctx.lineWidth = 1.6;
+  ctx.lineCap = "round";
+  for (let i = 0; i < 2; i++) {
+    const gx = ((t * 18 + i * 220) % (W + 60)) - 30;
+    const gy = top + 18 + i * 10 + Math.sin(t * 2.4 + i) * 3;
+    ctx.beginPath();
+    ctx.moveTo(gx - 5, gy);
+    ctx.quadraticCurveTo(gx - 2, gy - 4, gx, gy);
+    ctx.quadraticCurveTo(gx + 2, gy - 4, gx + 5, gy);
+    ctx.stroke();
+  }
+}
+
+function drawShipDeckArea(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, t: number): void {
+  const horizon = Math.round(top + Math.max(24, Math.min(46, (bottom - top) * 0.2)));
+  const deckTop = Math.round(Math.max(horizon + 40, bottom - Math.max(48, Math.min(84, (bottom - top) * 0.34))));
+  const sky = ctx.createLinearGradient(0, top, 0, horizon);
+  sky.addColorStop(0, "#8ed2f5");
+  sky.addColorStop(1, "#e8f8ff");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, top, W, horizon - top);
+  ellipse(ctx, 70, top + 18, 14, 14, "#ffe27a");
+  // ocean all around — we are ON the ship
+  const sea = ctx.createLinearGradient(0, horizon, 0, deckTop);
+  sea.addColorStop(0, "#2c93cf");
+  sea.addColorStop(1, "#57b7e4");
+  ctx.fillStyle = sea;
+  ctx.fillRect(0, horizon, W, deckTop - horizon);
+  px(ctx, 0, horizon, W, 2, "rgba(255,255,255,0.5)");
+  for (let r = 0; r < 3; r++) {
+    const wy = horizon + 12 + r * 16;
+    for (let x = -30; x < W; x += 52) {
+      const shift = Math.sin(t * 1.5 + r * 1.3) * 9;
+      px(ctx, x + shift + r * 14, wy, 22, 2, "rgba(255,255,255,0.3)");
+    }
+  }
+  // a distant island
+  ellipse(ctx, W - 130, horizon + 8, 34, 8, "#5e8f6a");
+  // white railing at the deck edge
+  const railY = deckTop - 26;
+  px(ctx, 0, railY, W, 4, "#f4f7fb");
+  px(ctx, 0, railY + 12, W, 3, "#e2e9f2");
+  for (let x = 10; x < W; x += 42) px(ctx, x, railY, 4, 26, "#eef2f8");
+  // lifebuoy on the railing
+  ctx.lineWidth = 7;
+  ctx.strokeStyle = "#ff6f5a";
+  ctx.beginPath();
+  ctx.arc(W * 0.32, railY + 8, 12, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 7;
+  for (const a0 of [0.3, 1.87, 3.44, 5.01] as const) {
+    ctx.beginPath();
+    ctx.arc(W * 0.32, railY + 8, 12, a0, a0 + 0.5);
+    ctx.stroke();
+  }
+  // warm wooden deck planks
+  const deck = ctx.createLinearGradient(0, deckTop, 0, bottom);
+  deck.addColorStop(0, "#c89b66");
+  deck.addColorStop(1, "#a97e4e");
+  ctx.fillStyle = deck;
+  ctx.fillRect(0, deckTop, W, bottom - deckTop);
+  px(ctx, 0, deckTop, W, 3, "#e0b87e");
+  for (let yy = deckTop + 16; yy < bottom; yy += 18) px(ctx, 0, yy, W, 2, "rgba(90,60,30,0.28)");
+  for (let x = 40; x < W; x += 120) px(ctx, x, deckTop + 4, 2, bottom - deckTop - 4, "rgba(90,60,30,0.18)");
+  // big red-and-white funnel with drifting smoke
+  const fx = W - 96;
+  px(ctx, fx, deckTop - 74, 46, 52, "#e8574b");
+  px(ctx, fx, deckTop - 74, 46, 12, "#2c3346");
+  px(ctx, fx - 3, deckTop - 24, 52, 6, "#c94436");
+  for (let i = 0; i < 3; i++) {
+    // Math.abs keeps the drift/radius valid even if a caller rewinds time
+    const drift = Math.abs((t * 12 + i * 34) % 90);
+    const sx = fx + 22 + drift * 0.9;
+    const sy = deckTop - 84 - drift * 0.5;
+    const sr = 6 + drift * 0.1;
+    ellipse(ctx, sx, sy, sr, sr * 0.75, "rgba(240,244,250,0.5)");
+  }
+  // mast with a flapping flag
+  px(ctx, 26, deckTop - 88, 4, 66, "#7c6248");
+  ctx.fillStyle = "#ffd23f";
+  ctx.beginPath();
+  ctx.moveTo(30, deckTop - 86);
+  ctx.quadraticCurveTo(58 + Math.sin(t * 5) * 5, deckTop - 82, 30, deckTop - 72);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawFlowerFieldArea(ctx: CanvasRenderingContext2D, W: number, top: number, bottom: number, t: number): void {
+  const horizon = Math.round(top + Math.max(30, Math.min(60, (bottom - top) * 0.26)));
+  const sky = ctx.createLinearGradient(0, top, 0, horizon);
+  sky.addColorStop(0, "#a5ddff");
+  sky.addColorStop(1, "#f2fbff");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, top, W, horizon - top);
+  ellipse(ctx, W - 66, top + 20, 15, 15, "#ffe27a");
+  const cloudShift = (t * 6) % 200;
+  for (const [x0, y, sc] of [[90, top + 20, 0.6], [330, top + 30, 0.72]] as const) {
+    const x = ((x0 + cloudShift) % (W + 120)) - 70;
+    ellipse(ctx, x, y, 20 * sc, 7 * sc, "rgba(255,255,255,0.85)");
+    ellipse(ctx, x + 18 * sc, y + 4 * sc, 24 * sc, 8 * sc, "rgba(255,255,255,0.8)");
+  }
+  // rolling meadow
+  const ground = ctx.createLinearGradient(0, horizon, 0, bottom);
+  ground.addColorStop(0, "#b4e393");
+  ground.addColorStop(1, "#7cc776");
+  ctx.fillStyle = ground;
+  ctx.fillRect(0, horizon, W, bottom - horizon);
+  ellipse(ctx, W * 0.25, horizon + 6, W * 0.3, 14, "#c4eda2");
+  ellipse(ctx, W * 0.75, horizon + 10, W * 0.32, 16, "#aede8f");
+  // ranks upon ranks of tulips in alternating colours
+  const colors = ["#ff6f9f", "#ffd23f", "#b98cff", "#ff8c5a", "#ff5d6c", "#fff2f5"];
+  const rows = Math.max(3, Math.floor((bottom - horizon - 40) / 34));
+  for (let r = 0; r < rows; r++) {
+    const fy = horizon + 30 + r * 34;
+    if (fy > bottom - 12) break;
+    const sway = Math.sin(t * 1.4 + r) * 2;
+    for (let x = 14 + (r % 2) * 13; x < W; x += 26) {
+      const c = colors[(r + Math.floor(x / 26)) % colors.length];
+      px(ctx, x, fy, 2, 10, "#4d9c55");
+      ellipse(ctx, x + 1 + sway, fy - 3, 4.5, 5.5, c);
+      ellipse(ctx, x + 1 + sway, fy - 5, 2.2, 2.6, "rgba(255,255,255,0.35)");
+    }
+  }
+  // butterflies
+  for (let i = 0; i < 3; i++) {
+    const bx = W * 0.2 + ((t * 22 + i * 170) % (W * 0.7));
+    const by = horizon + 34 + Math.sin(t * 3 + i * 2) * 14;
+    const flap = Math.abs(Math.sin(t * 10 + i));
+    ctx.fillStyle = ["#ffd23f", "#ff9ec0", "#9fd8ff"][i];
+    ellipse(ctx, bx - 3 * flap, by, 3.4 * flap + 0.8, 4, ["#ffd23f", "#ff9ec0", "#9fd8ff"][i]);
+    ellipse(ctx, bx + 3 * flap, by, 3.4 * flap + 0.8, 4, ["#ffd23f", "#ff9ec0", "#9fd8ff"][i]);
+    px(ctx, bx - 0.8, by - 4, 1.6, 8, "#4a3a30");
   }
 }
 

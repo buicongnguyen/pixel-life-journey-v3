@@ -3211,9 +3211,17 @@ export class Game {
     // center gate
     const s = STAGES[this.stageIndex];
     if (this.px > DOOR_X) {
+      const nearUtilityGate =
+        (this.canShowAssetsGate() && this.nearAssetsGate()) ||
+        (this.canShowFamilyTreeGate() && this.nearFamilyTreeGate());
       if (!this.nearGate()) {
         this.px = DOOR_X;
-        this.hint("Use the right-side gate to grow up.");
+        // the top-right utility gates own this corner — no misleading door hint
+        if (!nearUtilityGate) this.hint("Use the right-side gate to grow up.");
+      } else if (nearUtilityGate) {
+        // a utility-gate ring can overlap the door corridor (short zones /
+        // landscape) — walking to the gate must never auto-advance the stage
+        this.px = DOOR_X;
       } else if (this.doorOpen()) this.advanceStage();
       else this.hint(`Grow a little more first (age ${Math.floor(this.age)} → ${s.ageEnd}).`);
     }

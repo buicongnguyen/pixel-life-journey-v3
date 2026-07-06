@@ -1129,8 +1129,10 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
 
   const farFootX = cx - dir * (sideHipW * 0.2 + stride * 0.58);
   const nearFootX = cx + dir * (sideHipW * 0.2 + stride);
-  const farLift = swing * dir > 0 ? lift : 0;
-  const nearLift = swing * dir < 0 ? lift : 0;
+  // lift phase is tied to the stride, NOT the facing — otherwise walking left
+  // lifted the wrong foot (front-of-stride instead of back-of-stride)
+  const farLift = swing > 0 ? lift : 0;
+  const nearLift = swing < 0 ? lift : 0;
   const kneeY = hipY + legH * 0.5;
   limb(ctx, cx - dir * sideHipW * 0.08, hipY, cx - dir * sideHipW * 0.13 - dir * stride * 0.2, kneeY - farLift * 0.25, legW * 0.92, shade(look.pants, 10));
   limb(ctx, cx - dir * sideHipW * 0.13 - dir * stride * 0.2, kneeY - farLift * 0.25, farFootX, footBaseY - farLift, legW * 0.86, shade(look.pants, 4));
@@ -1145,6 +1147,8 @@ function drawSideStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
     taper(ctx, cx, torsoTopY + torsoH * 0.66, sideWaistW * 0.88, hipY + H * 0.01, sideHipW * 0.78, hgrad(ctx, cx - sideHipW * 0.39, sideHipW * 0.78, look.pants));
     // repaint the far thigh over the block so no hem line crosses it
     limb(ctx, cx - dir * sideHipW * 0.08, hipY, cx - dir * sideHipW * 0.13 - dir * stride * 0.2, kneeY - farLift * 0.25, legW * 0.92, shade(look.pants, 10));
+    // ...and re-cover the knee the repaint just crossed
+    jointCover(ctx, cx - dir * sideHipW * 0.13 - dir * stride * 0.2, kneeY - farLift * 0.25, legW * 0.9, shade(look.pants, 4));
   }
   // Anatomy-shaped profile torso (was a straight trapezoid): the ribcage
   // pushes the CHEST FORWARD, the back bows out under the shoulder blades and
@@ -1360,6 +1364,9 @@ function drawBackStanding(ctx: CanvasRenderingContext2D, cx: number, footY: numb
     // trousers: repaint the thighs over the block so no hem crosses them
     limb(ctx, leftHipX, hipY, leftKneeX, kneeY - (swing > 0 ? lift * 0.3 : 0), legW, shade(look.pants, 5));
     limb(ctx, rightHipX, hipY, rightKneeX, kneeY - (swing < 0 ? lift * 0.3 : 0), legW, shade(look.pants, 5));
+    // ...and re-cover the knees the repaints just crossed
+    jointCover(ctx, leftKneeX, kneeY - (swing > 0 ? lift * 0.3 : 0), legW, look.pants);
+    jointCover(ctx, rightKneeX, kneeY - (swing < 0 ? lift * 0.3 : 0), legW, look.pants);
   }
   taper(ctx, cx, torsoTopY, shoulderW, torsoTopY + torsoH * 0.66, waistW, hgrad(ctx, cx - shoulderW / 2, shoulderW, look.shirt, 20, 24));
 
@@ -3784,7 +3791,9 @@ export function drawStation(ctx: CanvasRenderingContext2D, x: number, y: number,
   const top = cy - size * 0.62; // kept for the label position below
 
   ctx.save();
-  if (used) ctx.globalAlpha = 0.45;
+  if (used) ctx.globalAlpha *= 0.45;
+  // respect the caller's fade (the engine draws satiated hazards ghostly at 0.18)
+  const baseAlpha = ctx.globalAlpha;
 
   // soft radial contact shadow ON the floor — grounds the object like a real thing
   const shR = size * 0.62;
@@ -3806,12 +3815,12 @@ export function drawStation(ctx: CanvasRenderingContext2D, x: number, y: number,
   // that the old square border carried, but reads as light, not UI
   const ringR = focused ? 21 : 17;
   ctx.strokeStyle = focused ? "#ffffff" : tintC;
-  ctx.globalAlpha *= focused ? 0.85 : 0.55;
+  ctx.globalAlpha = baseAlpha * (focused ? 0.85 : 0.55);
   ctx.lineWidth = focused ? 2.4 : 1.8;
   ctx.beginPath();
   ctx.ellipse(x, y - 3, ringR, ringR * 0.3, 0, 0, Math.PI * 2);
   ctx.stroke();
-  ctx.globalAlpha = used ? 0.45 : 1;
+  ctx.globalAlpha = baseAlpha;
 
   // a faint glow behind the object lifts it out of the room
   const glow = ctx.createRadialGradient(x, cy, 1, x, cy, size * 0.85);

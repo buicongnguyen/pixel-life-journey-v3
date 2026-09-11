@@ -57,11 +57,13 @@ import {
   MOMENT_PRESETS,
   makeMoment,
   newBiography,
+  sanitizeBiographyMoment,
 } from "./biography";
 import { avatarLook, drawAvatar, drawEventItem, drawPerson, drawPet, drawRoom, drawStation, type AvatarFacing } from "./sprites";
 import { createUI, type UIRefs } from "./ui";
 import { generateStory, type CauseOfEnd, type LifeStory } from "./story";
 import { linePool } from "./messages";
+import { chapterChallenge } from "./challenges";
 
 // Room dimensions are NOT fixed: they switch between a tall portrait shape and a
 // wide-short landscape shape (setRoomDims) so the playfield fills the screen in
@@ -125,6 +127,7 @@ const FOOD_FRESH = 5; // collected food auto-eats this many seconds after pickup
 const ELEMENTARY_INDEX = STAGES.findIndex((s) => s.id === "elementary");
 const MIDDLE_INDEX = STAGES.findIndex((s) => s.id === "middle");
 const CAREER_INDEX = STAGES.findIndex((s) => s.id === "career");
+const MARRIAGE_INDEX = STAGES.findIndex((s) => s.id === "marriage");
 const ELEMENTARY_ASSETS_MONEY = 200000;
 const BAD_FIT_TAGS = ["sedentary", "gaming", "screen", "toy_phone", "cigarette"];
 const BAD_FOCUS_TAGS = ["wine", "whisky", "beer"];
@@ -1268,6 +1271,9 @@ interface Snapshot {
   owned: string[];
   vehiclePurchaseAges: [string, number][];
   jobsTaken: string[];
+  usedOnce: string[];
+  trainingQuestionIndex: Record<TrainingCategory, number>;
+  trainingLevel: Record<TrainingCategory, TrainingLevel>;
   usedEvents: string[];
   inventory: InventorySlot[];
   selectedInventory: number;
@@ -1394,7 +1400,7 @@ export class Game {
   // reused scratch draw-list — avoids allocating an array + N wrapper objects every frame
   private drawList: { y: number; station?: Station; pet?: boolean }[] = [];
   // HUD dirty-check — skip the per-frame DOM writes when nothing relevant changed
-  private hudSig = NaN;
+  private hudSig = "";
   private hudMode = "";
   private hudOcc = "";
   // rotating flavor-line cursor, keyed per person-kind / item-id (cosmetic)
@@ -1499,6 +1505,10 @@ export class Game {
       px: Math.round(this.px),
       py: Math.round(this.py),
       focus: this.focusIndex >= 0 ? this.stations[this.focusIndex]?.opt.id : null,
+      availableOptions: this.stations
+        .filter((station) => station.kind !== "event")
+        .map((station) => station.opt.id),
+      usedOnce: [...this.usedOnce],
       partner: this.partner?.id ?? null,
       gender: this.gender,
       heritage: this.heritage,
@@ -1651,6 +1661,7 @@ export class Game {
     // roll a lifelong IQ potential (mean 100, sd 15, clamped) + a rare gifted bump
     this.iqCeiling = Math.max(70, Math.min(145, Math.round(gaussian(100, 15))));
     if (Math.random() < 0.02) this.iqCeiling = 150 + Math.floor(Math.random() * 11); // ~2% gifted (150-160)
+    if (startIndex > 0) this.stats.smarts = clampIq(Math.round(this.iqCeiling * ageMaturity(STAGES[startIndex].ageStart)));
     this.geneBonus = Math.round((Math.random() * 10 - 5) * 10) / 10; // longevity genes -5..+5
     this.familyBond = 0;
     this.lifetimeEarned = 0;
@@ -1669,6 +1680,8 @@ export class Game {
     this.petHappyCd = 0;
     this.spouseDeceased = false;
     this.habitCount = 0;
+    this.trainingQuestionIndex = { iq: 0, eq: 0, strategy: 0 };
+    this.trainingLevel = { iq: "starter", eq: "starter", strategy: "starter" };
     this.eventCooldown = 2;
     this.foodCooldown = 0;
     this.trayTipShown = false;
@@ -1690,7 +1703,6 @@ export class Game {
     this.skyMessage = null;
     this.story = null;
     this.renderInventory();
-    this.sampleHealth();
     this.loadStage(startIndex);
     const start = STAGES[startIndex];
     const familyText = `Family fund: ${formatMoney(this.familyFund)}. Mommy & Daddy: ~${formatMoney(this.parentAnnualSupport)}/yr.`;
@@ -1702,7 +1714,7 @@ export class Game {
   private loadStage(i: number, restoring = false): void {
     this.stageIndex = i;
     const s = STAGES[i];
-    this.usedOnce.clear();
+    if (!restoring) this.usedOnce.clear();
     this.age = Math.max(this.age, s.ageStart);
     this.px = 70;
     this.py = 500;
@@ -1719,17 +1731,50 @@ export class Game {
       this.sampleHealth();
       this.timeline[i] = this.snapshot(); // capture entry state for time travel
     }
-    // a biography replays an authored life — no occupation/marriage pickers
-    if (!this.biography && s.isMarriage && !this.partner) {
-      this.mode = "partner";
-      this.showPartner();
-    } else if (!this.biography && s.isCareer && !this.occupation) {
+    this.enterRequiredStageChoice();
+  }
+
+  /** Read-only presentation data; the 3D view never owns simulation state. */
+  renderSnapshot() {
+    return {
+      width: W, height: H, stage: STAGES[this.stageIndex],
+      player: { x: this.px, y: this.py },
+      door: { x: DOOR_X, y: this.zoneSplitY(), open: this.doorOpen() },
+      stations: this.stations.map(st => ({
+        id: st.opt.id, x: st.x, y: st.y, kind: st.kind, label: st.opt.label,
+        harmful: st.kind === "bad" || st.event?.good === false,
+        inactive: st.satiated > 0 || (st.opt.once === true && this.usedOnce.has(st.opt.id)),
+      })),
+    };
+  }
+
+  /**
+   * Later-stage starts still need the life-defining choices from earlier
+   * chapters. Keep the sequence deterministic: career, commute, then partner.
+   */
+  private enterRequiredStageChoice(): void {
+    if (!this.biography && this.stageIndex >= CAREER_INDEX && !this.occupation) {
       this.mode = "occupation";
       this.showOccupation();
-    } else {
-      this.mode = "playing";
-      this.clearOverlay();
+      return;
     }
+    if (!this.biography && this.stageIndex >= CAREER_INDEX && !this.commute) {
+      this.mode = "commute";
+      this.showCommute();
+      return;
+    }
+    if (!this.biography && this.stageIndex >= MARRIAGE_INDEX && !this.partner) {
+      this.mode = "partner";
+      this.showPartner();
+      return;
+    }
+    // Required choices can change which people are available (notably spouse),
+    // so rebuild after the sequence completes.
+    this.mode = "playing";
+    this.buildStations();
+    this.focusIndex = -1;
+    this.renderFocusPanel();
+    this.clearOverlay();
   }
 
   private snapshot(): Snapshot {
@@ -1769,6 +1814,9 @@ export class Game {
       owned: [...this.owned],
       vehiclePurchaseAges: [...this.vehiclePurchaseAges.entries()],
       jobsTaken: [...this.jobsTaken],
+      usedOnce: [...this.usedOnce],
+      trainingQuestionIndex: { ...this.trainingQuestionIndex },
+      trainingLevel: { ...this.trainingLevel },
       inventory: this.inventory.map((slot) => ({ opt: slot.opt, count: slot.count, eatBy: slot.eatBy })),
       selectedInventory: this.selectedInventory,
       familyMembers: this.familyMembers.map((m) => ({ ...m })),
@@ -1842,17 +1890,7 @@ export class Game {
   /** Reduce a loaded biography moment to known-safe fields (localStorage is untrusted,
    *  so it can never carry a house/vehicle picker, a gamble, a cost or a one-off flag). */
   private sanitizeMoment(m: LifeOption): LifeOption {
-    return {
-      id: String(m.id ?? "bm"),
-      label: String(m.label ?? "A moment"),
-      icon: String(m.icon ?? "📌"),
-      desc: String(m.desc ?? ""),
-      category: m.category ?? "special",
-      effects: m.effects && typeof m.effects === "object" ? m.effects : {},
-      ...(typeof m.earn === "number" && isFinite(m.earn) ? { earn: m.earn } : {}),
-      ...(m.person ? { person: m.person } : {}),
-      storyTag: "bio_moment",
-    };
+    return sanitizeBiographyMoment(m);
   }
 
   /** Sort each choice into a kind: people are static, junk/screen-time CHASE you
@@ -1897,6 +1935,16 @@ export class Game {
       } as Station;
     });
     this.people = this.stations.filter((s) => s.kind === "person");
+  }
+
+  /** Refresh context-sensitive chapter options without deleting a live event. */
+  private rebuildStationsKeepingEvents(): void {
+    const events = this.stations.filter((station) => station.kind === "event");
+    this.buildStations();
+    this.stations.push(...events);
+    this.people = this.stations.filter((station) => station.kind === "person");
+    this.focusIndex = -1;
+    this.renderFocusPanel();
   }
 
   private stationZone(opt: LifeOption): StationZone {
@@ -2430,6 +2478,7 @@ export class Game {
     const discount = activityDiscount(this.stats);
     const realCost = opt.cost ? Math.round(opt.cost * discount) : 0;
     const badSocial = this.isBadSocialOption(opt);
+    const grandkidsWereAvailable = this.hadChild && this.familyBond >= 3;
 
     const eff: Partial<Stats> = { ...opt.effects };
     // healthy choices pay off faster: eating well and exercising build health
@@ -2546,6 +2595,10 @@ export class Game {
     });
     this.spawnFloats(eff, wDelta);
     if (habitBonus) this.floats.push({ x: this.px, y: this.py - 90, text: `+${habitBonus} ❤️`, color: "#ff5d6c", life: 1.3 });
+    const grandkidsNowAvailable = this.hadChild && this.familyBond >= 3;
+    if (opt.id === "baby" || (!grandkidsWereAvailable && grandkidsNowAvailable)) {
+      this.rebuildStationsKeepingEvents();
+    }
 
     if (this.stats.health <= 0) return this.finishLife("health", Math.round(this.age));
 
@@ -2862,9 +2915,8 @@ export class Game {
       ageAt: this.age,
     });
     this.timeline[this.stageIndex] = this.snapshot(); // re-capture: now married
-    this.mode = "playing";
-    this.clearOverlay();
     this.hint(`💍 You married ${p.name}, ${p.title}!`);
+    this.enterRequiredStageChoice();
   }
 
   private pickOccupation(o: Occupation): void {
@@ -2880,14 +2932,7 @@ export class Game {
     });
     this.timeline[this.stageIndex] = this.snapshot();
     this.hint(`${o.emoji} You became a ${o.name}!`);
-    // a second career-start fork: how will you commute to work?
-    if (!this.commute) {
-      this.mode = "commute";
-      this.showCommute();
-    } else {
-      this.mode = "playing";
-      this.clearOverlay();
-    }
+    this.enterRequiredStageChoice();
   }
 
   private buyHouse(h: HouseTier): void {
@@ -3001,9 +3046,8 @@ export class Game {
       ageAt: this.age,
     });
     this.timeline[this.stageIndex] = this.snapshot();
-    this.mode = "playing";
-    this.clearOverlay();
     this.hint(`${c.emoji} ${c.name} — that's how you'll get to work.`);
+    this.enterRequiredStageChoice();
   }
 
   /** Time travel: jump back to the start of a previously-visited stage. */
@@ -3044,6 +3088,17 @@ export class Game {
     this.owned = new Set(snap.owned);
     this.vehiclePurchaseAges = new Map(snap.vehiclePurchaseAges ?? []);
     this.jobsTaken = new Set(snap.jobsTaken);
+    this.usedOnce = new Set(snap.usedOnce ?? []);
+    this.trainingQuestionIndex = {
+      iq: snap.trainingQuestionIndex?.iq ?? 0,
+      eq: snap.trainingQuestionIndex?.eq ?? 0,
+      strategy: snap.trainingQuestionIndex?.strategy ?? 0,
+    };
+    this.trainingLevel = {
+      iq: snap.trainingLevel?.iq ?? "starter",
+      eq: snap.trainingLevel?.eq ?? "starter",
+      strategy: snap.trainingLevel?.strategy ?? "starter",
+    };
     this.inventory = snap.inventory.map((slot) => ({ opt: slot.opt, count: slot.count, eatBy: slot.eatBy }));
     this.selectedInventory = Math.max(0, Math.min(snap.selectedInventory, this.inventory.length - 1));
     this.familyMembers = snap.familyMembers.map((m) => ({ ...m }));
@@ -3072,6 +3127,9 @@ export class Game {
       ? OCCUPATIONS.find((o) => o.id === snap.occupationId) ?? null
       : null;
     this.history = this.history.slice(0, snap.historyLen);
+    // A changed past invalidates later snapshots; never restore future assets
+    // against a history that was already truncated by an earlier rewind.
+    this.timeline = this.timeline.slice(0, stageIndex + 1);
     this.floats = [];
     this.skyMessage = null;
     this.clearOverlay();
@@ -3942,20 +4000,13 @@ export class Game {
 
   private renderHud(): void {
     // Most of the HUD changes only on a discrete action / mode change, yet this runs
-    // every frame. A cheap numeric signature lets us skip the reflow-causing DOM
+    // every frame. An explicit value signature lets us skip the reflow-causing DOM
     // writes when nothing relevant changed.
-    const sig = Math.round(this.money)
-      + Math.floor(this.age) * 131
-      + this.stageIndex * 100003
-      + Math.round(this.stats.health) * 7
-      + Math.round(this.stats.happiness) * 13
-      + Math.round(this.stats.fun) * 17
-      + Math.round(this.stats.smarts) * 19
-      + Math.round(this.weight) * 23
-      + Math.round(this.muscle) * 29
-      + Math.round(this.nutrition) * 31
-      + Math.round(this.mental) * 37
-      + this.lifeSpeed * 41;
+    const sig = [Math.round(this.money), Math.floor(this.age), this.stageIndex,
+      ...STAT_KEYS.map(k => Math.round(this.stats[k])), Math.round(this.weight),
+      Math.round(this.muscle), Math.round(this.nutrition), Math.round(this.mental),
+      this.lifeSpeed, this.lifeExp(), this.history.length, this.biography?.id ?? "",
+      this.timeline.filter(Boolean).length].join("|");
     const occId = this.occupation?.id ?? "";
     if (sig !== this.hudSig || this.mode !== this.hudMode || occId !== this.hudOcc) {
     this.hudSig = sig; this.hudMode = this.mode; this.hudOcc = occId;
@@ -3989,6 +4040,12 @@ export class Game {
     this.ui.moneyLabel.textContent = `💰 ${formatMoney(this.money)}`;
 
     const s = STAGES[Math.min(this.stageIndex, STAGES.length - 1)];
+    const challenge = chapterChallenge(s, this.history);
+    this.ui.challenge.hidden = this.mode === "title" || this.mode === "setup";
+    this.ui.challenge.textContent = this.biography ? "📖 Explore your authored moments · gate is open"
+      : `${challenge.complete ? "🏅 Chapter explorer" : `🌱 Explore ${challenge.count}/${challenge.target} positive choices`}`
+        + (challenge.complete || !challenge.suggestion ? "" : ` · Try ${challenge.suggestion}`)
+        + (this.doorOpen() ? " · Growth gate open →" : ` · Grow at age ${s.ageEnd}`);
     if (this.biography) {
       // a biography shows the (custom) chapter title and whose life it is
       const ch = this.biography.chapters[s.id];
@@ -4689,10 +4746,21 @@ export class Game {
       </div>`).join("");
   }
 
-  private spendTrainingMoment(): void {
+  private spendTrainingMoment(): boolean {
     this.age += Math.max(0.01, this.stageStep() * 0.16);
     this.passiveTick();
+    this.sampleHealth();
     this.renderHud();
+    if (this.stats.health <= 0) {
+      this.finishLife("health", Math.round(this.age));
+      return false;
+    }
+    const le = this.lifeExp();
+    if (this.age >= le) {
+      this.finishLife(le < 70 ? "health" : "natural", Math.round(this.age));
+      return false;
+    }
+    return true;
   }
 
   private parseTrainingQuestion(value: unknown): TrainingQuestion | null {
@@ -4791,8 +4859,12 @@ export class Game {
       return win;
     }
     if (category === "eq") {
+      const grandkidsWereAvailable = this.hadChild && this.familyBond >= 3;
       this.familyBond += 0.8;
       this.applyEff({ health: 3, happiness: 2 }, "mental");
+      if (!grandkidsWereAvailable && this.hadChild && this.familyBond >= 3) {
+        this.rebuildStationsKeepingEvents();
+      }
       this.hint("💛 EQ question solved. +Mental health.");
       return `${win} +Mental health, +Happy, +Family bond.`;
     }
@@ -4812,7 +4884,7 @@ export class Game {
     if (answer === puzzle.correct) {
       const win = this.trainingWin(category, puzzle.win);
       this.trainingQuestionIndex[category] = (this.trainingQuestionIndex[category] + 1) % questions.length;
-      this.spendTrainingMoment();
+      if (!this.spendTrainingMoment()) return;
       this.showTraining(win);
       return;
     }
@@ -4826,7 +4898,7 @@ export class Game {
     } else {
       this.applyEff({ fun: 1 }, "mental");
     }
-    this.spendTrainingMoment();
+    if (!this.spendTrainingMoment()) return;
     this.hint("Close. Try another angle.");
     this.showTraining(miss);
   }
@@ -4835,7 +4907,7 @@ export class Game {
     window.open(TRAINING_LINKS[kind], "_blank", "noopener,noreferrer");
     if (kind === "iq") {
       this.applyEff({ smarts: 1.5, happiness: 1 }, "mental");
-      this.spendTrainingMoment();
+      if (!this.spendTrainingMoment()) return;
       this.hint("🎓 Learning habits watched. +IQ.");
       this.showTraining("You looked up smarter learning habits. +1.5 IQ, +1 Happy.");
       return;
@@ -4846,14 +4918,18 @@ export class Game {
       this.money += bonus;
       this.lifetimeEarned += bonus;
       this.applyEff({ smarts: 0.8 }, "mental");
-      this.spendTrainingMoment();
+      if (!this.spendTrainingMoment()) return;
       this.hint(`💸 Money lesson. +${formatMoney(bonus)}.`);
       this.showTraining(`Financial education helped you earn ${formatMoney(bonus)} and unlocked wiser money habits.`);
       return;
     }
+    const grandkidsWereAvailable = this.hadChild && this.familyBond >= 3;
     this.familyBond += 1;
     this.applyEff({ health: 5, happiness: 3 }, "mental");
-    this.spendTrainingMoment();
+    if (!grandkidsWereAvailable && this.hadChild && this.familyBond >= 3) {
+      this.rebuildStationsKeepingEvents();
+    }
+    if (!this.spendTrainingMoment()) return;
     this.hint("💛 Family care learning. +Mental health.");
     this.showTraining("You studied how to treat family well. +Mental health, +Happy, +Family bond.");
   }
@@ -5162,7 +5238,14 @@ export class Game {
     }));
     const assetRows = [
       { label: "Cash", value: this.money, note: "current money" },
-      { label: "Stocks", value: this.investments, note: "current market pot" },
+      { label: "Long-term investments", value: this.investments, note: "compounding market pot" },
+      ...MARKET_ASSETS
+        .filter((asset) => this.holdings[asset.key] > 0)
+        .map((asset) => ({
+          label: `${asset.icon} ${asset.name}`,
+          value: this.holdings[asset.key] * this.market[asset.key],
+          note: "tradable holding",
+        })),
       ...houseRows,
       ...vehicleRows,
     ];
@@ -6004,6 +6087,12 @@ export class Game {
 
   private bindInput(): void {
     const setDir = (e: KeyboardEvent, down: boolean): void => {
+      // Form editing and native button activation must not become game actions.
+      const target = e.target;
+      if (down && target instanceof HTMLElement &&
+          (target.isContentEditable || target.closest("input, textarea, select") ||
+           ((e.key === "Enter" || e.key === " ") && target.closest("button")))) return;
+      if (down && (e.ctrlKey || e.metaKey || e.altKey)) return;
       switch (e.key) {
         case "ArrowLeft": case "a": case "A": this.input.left = down; break;
         case "ArrowRight": case "d": case "D": this.input.right = down; break;
@@ -6024,6 +6113,12 @@ export class Game {
     };
     window.addEventListener("keydown", (e) => setDir(e, true));
     window.addEventListener("keyup", (e) => setDir(e, false));
+    const releaseKeys = () => {
+      this.input = { left: false, right: false, up: false, down: false };
+      this.actQueued = false;
+    };
+    window.addEventListener("blur", releaseKeys);
+    document.addEventListener("visibilitychange", () => { if (document.hidden) releaseKeys(); });
     this.ui.canvas.addEventListener("pointerdown", (e) => {
       if (this.mode !== "playing") return;
       const p = this.canvasPoint(e);

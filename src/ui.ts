@@ -13,6 +13,7 @@ export interface UIRefs {
   canvas: HTMLCanvasElement;
   ctx: CanvasRenderingContext2D;
   stageLabel: HTMLElement;
+  challenge: HTMLElement;
   ageLabel: HTMLElement;
   leLabel: HTMLElement;
   moneyLabel: HTMLElement;
@@ -115,7 +116,8 @@ export function createUI(mount: HTMLElement): UIRefs {
     subRow.append(item);
     subBars[key] = { fill, val };
   }
-  hud.append(topRow, barsRow, subRow);
+  const challenge = el("div", "plj-challenge");
+  hud.append(topRow, barsRow, subRow, challenge);
 
   // --- canvas ---------------------------------------------------------------
   const stage = el("div", "plj-stage-wrap");
@@ -182,6 +184,7 @@ export function createUI(mount: HTMLElement): UIRefs {
     canvas,
     ctx,
     stageLabel,
+    challenge,
     ageLabel,
     leLabel,
     moneyLabel,

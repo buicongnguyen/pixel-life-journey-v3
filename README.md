@@ -113,15 +113,16 @@ husband sadly tends to pass before you do.
 At the **Marriage & Baby** stage you choose one of eight partners — and who you marry
 shapes every chapter that follows.
 
-## 🧠 It's modelled on real research
+## 🧠 A fictional balance model
 
-The balance between the meters is based on published findings, so playing well rewards
-the same habits that help in real life:
+The meters are simplified game rules inspired by broad themes about wellbeing.
+They do not predict an individual's health, intelligence, body weight or lifespan.
+The game's age-scaled "IQ" represents a fictional learning score, not a clinical IQ test.
 
 - **Money buys happiness with diminishing returns** — being broke hurts a lot, extra
   riches help less and less (Kahneman & Killingsworth, 2023).
-- **~90% of longevity is lifestyle** — diet, exercise, **sleep** and social connection
-  drive your life expectancy (Harvard Nutrition Source; longevity-habits research).
+- **Balanced routines** — diet, exercise, rest and social connection influence the
+  game's fictional lifespan score; the numerical weights are design choices.
 - **Overwork backfires** — the biggest pay cheques cost you health, fun and happiness
   (WHO/ILO long-working-hours review).
 
@@ -149,7 +150,8 @@ Everything is saved in your browser (`localStorage`), so you can keep and re-liv
 ## 🛠️ Tech
 
 - **Vite + TypeScript** and a hand-rolled **HTML5 Canvas** renderer — no game engine.
-- Zero runtime dependencies; everything runs in the browser, nothing is stored or sent.
+- The default Canvas game runs without a 3D library. Three.js loads only when you
+  open **Live 3D**; biography data is stored locally in your browser.
 - Characters are drawn with smooth curves + gradients and **age-correct proportions**
   (a newborn is a big-headed baby; the body matures gradually into an adult, then an
   elder), on a **supersampled 2560×1440 canvas** (≈16× pixels) for crisp, high-res art.
@@ -161,10 +163,23 @@ npm install
 npm run dev      # start the dev server
 npm run build    # type-check + production build into dist/
 npm run preview  # preview the production build
+npm test         # regression tests
 ```
 
 A debug handle is exposed as `window.__pixelLife` for testing (state snapshot,
 `debugChoose(id)`).
+
+## Chapter challenges and Blender
+
+Try three distinct positive choices per chapter to earn a cosmetic **Chapter explorer**
+badge. The HUD suggests an untried choice and shows when the growth gate opens.
+Rewinding restores the progress along with your history.
+
+**Live 3D** opens an experimental companion view of the same simulation. You can
+orbit the scene and import a local Blender GLB as the player avatar while continuing
+to use the original game controls. It is a static-mesh prototype, not a complete 3D
+conversion. See [BLENDER.md](BLENDER.md) for export instructions and a starter script,
+and [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md) for the evaluation and roadmap.
 
 ## 📁 Project structure
 

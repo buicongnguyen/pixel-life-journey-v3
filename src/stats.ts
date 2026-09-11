@@ -67,7 +67,9 @@ export function applyEffects(stats: Stats, effects: Partial<Stats>): Stats {
   for (const k of STAT_KEYS) {
     const d = effects[k];
     if (d === undefined) continue;
-    next[k] = k === "smarts" ? clampIq(next[k] + d) : clampStat(next[k] + d);
+    next[k] = k === "smarts" ? clampIq(next[k] + d)
+      : k === "health" ? Math.max(0, Math.min(HEALTH_MAX, next[k] + d))
+      : clampStat(next[k] + d);
   }
   return next;
 }
@@ -124,9 +126,8 @@ export function moneyHappinessBias(money: number): number {
 // --- Life expectancy --------------------------------------------------------
 /**
  * Life expectancy from the running averages of Health, Happiness and IQ.
- * ~90% of longevity is lifestyle (Harvard / blue-zones); social/positive mood
- * and education add years too. A balanced, thriving life can reach the verified
- * human cap (~120). Floor 45, cap 120.
+ * Fictional balance formula, not a medical prediction or validated lifespan model.
+ * A balanced game life can reach the design cap of 120. Floor 45, cap 120.
  */
 export function lifeExpectancy(avgHealth: number, avgHappiness: number, avgIq: number): number {
   avgIq = clampIq(avgIq);
@@ -207,7 +208,7 @@ export const WEIGHT_IDEAL_HIGH = 64;
 export type WeightStatus = "underweight" | "healthy" | "overweight" | "obese";
 
 export function weightStatus(w: number): WeightStatus {
-  if (w < WEIGHT_IDEAL_LOW - 12) return "underweight";
+  if (w < WEIGHT_IDEAL_LOW) return "underweight";
   if (w <= WEIGHT_IDEAL_HIGH) return "healthy";
   if (w <= WEIGHT_IDEAL_HIGH + 18) return "overweight";
   return "obese";

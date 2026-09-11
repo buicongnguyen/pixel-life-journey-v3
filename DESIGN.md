@@ -122,10 +122,12 @@ times across your life** and the habit sticks: a one-time **+15 ❤️** at the 
 
 ---
 
-## 3. Balance model (grounded in real research)
+## 3. Balance model (fictional game rules)
 
-These relationships are deliberately modelled on published findings, so "playing
-well" rewards the same habits that help in real life. Sources are listed in §7.
+These relationships are simplified design choices inspired by broad wellbeing
+themes. They are not medical or psychological measurements or lifespan predictions.
+The age-scaled IQ meter is a fictional learning score. Historical inspirations are
+listed in §7; they do not validate the game's equations.
 
 ```mermaid
 flowchart TD
@@ -156,10 +158,10 @@ flowchart TD
 1. **Money → happiness has diminishing returns.** Happiness rises with the *log* of
    wealth — being broke hurts a lot, extra riches help less and less. Implemented in
    `wealthHappinessBias()`. *(Kahneman & Killingsworth, 2023.)*
-2. **Health is the foundation of longevity.** Life expectancy ≈ `50 + 0.4 × average
-   health`, because lifestyle accounts for ~90% of longevity, with diet, exercise,
-   **sleep** and social connection as the biggest levers. Implemented in
-   `lifeExpectancyFromHealth()`. *(Harvard Nutrition Source; longevity-habits study.)*
+2. **Health influences the game's lifespan score.** `lifeExpectancy()` in `stats.ts`
+   combines running averages of health, happiness and the fictional IQ meter, with
+   a balance bonus and a 45–120 year clamp. These coefficients and limits are chosen
+   for gameplay, not inferred from medical research.
 3. **Overwork backfires.** The "Overtime grind" options give the most money but cut
    health, fun *and* happiness — long hours (>55h/week) are linked to worse health
    and lower life satisfaction. *(WHO/ILO long-working-hours review; Cleveland Clinic.)*

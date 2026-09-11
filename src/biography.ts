@@ -1,4 +1,4 @@
-import type { Gender, LifeOption, OptionCategory, Stats } from "./types";
+import type { Gender, LifeOption, OptionCategory, PersonKind, Stats, StatKey } from "./types";
 
 // ---------------------------------------------------------------------------
 // Biography mode: turn the game into a tool for telling a REAL life story.
@@ -28,6 +28,60 @@ export interface Biography {
 }
 
 const KEY = "plj-biographies-v1";
+const OPTION_CATEGORIES = new Set<OptionCategory>([
+  "health", "food", "fun", "smarts", "wealth", "social", "rest", "special",
+]);
+const PERSON_KINDS = new Set<PersonKind>([
+  "mother", "father", "grandma", "grandpa", "babySibling", "sibling",
+  "playmate", "studyFriend", "bestFriend", "crush", "smokerFriend",
+  "gangster", "playboy", "roommate", "coworker", "boss", "gymBuddy",
+  "spouse", "baby", "child", "grandkid", "oldFriend",
+]);
+const STAT_KEYS: StatKey[] = ["health", "happiness", "fun", "smarts"];
+
+function safeText(value: unknown, fallback: string, maxLength: number): string {
+  return (typeof value === "string" ? value : fallback).slice(0, maxLength);
+}
+
+/**
+ * Reduce an imported/localStorage moment to finite, known-safe game values.
+ * Biography storage is user-editable, so TypeScript's compile-time types do
+ * not protect the live simulation from strings, NaN-like values or unknown
+ * categories/person kinds.
+ */
+export function sanitizeBiographyMoment(value: unknown): LifeOption {
+  const row = value && typeof value === "object" ? value as Record<string, unknown> : {};
+  const rawEffects = row.effects && typeof row.effects === "object"
+    ? row.effects as Record<string, unknown>
+    : {};
+  const effects: Partial<Stats> = {};
+  for (const key of STAT_KEYS) {
+    const amount = rawEffects[key];
+    if (typeof amount === "number" && Number.isFinite(amount)) {
+      effects[key] = Math.max(-100, Math.min(100, amount));
+    }
+  }
+  const category = OPTION_CATEGORIES.has(row.category as OptionCategory)
+    ? row.category as OptionCategory
+    : "special";
+  const person = PERSON_KINDS.has(row.person as PersonKind)
+    ? row.person as PersonKind
+    : undefined;
+  const earn = typeof row.earn === "number" && Number.isFinite(row.earn)
+    ? Math.max(-1_000_000_000, Math.min(1_000_000_000, row.earn))
+    : undefined;
+  return {
+    id: safeText(row.id, "bm", 120),
+    label: safeText(row.label, "A moment", 120),
+    icon: safeText(row.icon, "📌", 16),
+    desc: safeText(row.desc, "", 500),
+    category,
+    effects,
+    ...(earn !== undefined ? { earn } : {}),
+    ...(person ? { person } : {}),
+    storyTag: "bio_moment",
+  };
+}
 
 /**
  * Coerce one loaded biography into a guaranteed-valid shape. localStorage is
@@ -49,7 +103,9 @@ function normalizeBio(b: unknown): Biography | null {
     const c = srcChapters[k] as Record<string, unknown> | null;
     const moments =
       c && Array.isArray(c.moments)
-        ? (c.moments.filter((m) => m && typeof m === "object") as LifeOption[])
+        ? c.moments
+            .filter((m) => m && typeof m === "object")
+            .map(sanitizeBiographyMoment)
         : [];
     chapters[k] = { ...(c && typeof c.title === "string" ? { title: c.title } : {}), moments };
   }

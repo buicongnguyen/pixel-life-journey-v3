@@ -3782,7 +3782,7 @@ function drawEmojiItem(ctx: CanvasRenderingContext2D, x: number, footY: number, 
   ctx.fillText(emoji, x, footY - 40 + lift);
 }
 
-export function drawStation(ctx: CanvasRenderingContext2D, x: number, y: number, icon: string, label: string, category: string, focused: boolean, used: boolean, t: number): void {
+export function drawStation(ctx: CanvasRenderingContext2D, x: number, y: number, icon: string, label: string, category: string, focused: boolean, used: boolean, t: number, artwork?: HTMLImageElement): void {
   const tintC = CAT_TINT[category] ?? "#ffffff";
   // every object idles with a tiny bob (phase-offset by x so neighbours don't sync)
   const bob = focused ? Math.sin(t * 6) * 3 : Math.sin(t * 2.1 + x * 0.13) * 1.3;
@@ -3840,7 +3840,8 @@ export function drawStation(ctx: CanvasRenderingContext2D, x: number, y: number,
   ctx.shadowBlur = 5;
   ctx.shadowOffsetY = 3;
   ctx.fillStyle = "#ffffff";
-  ctx.fillText(icon, x, cy);
+  if (artwork) ctx.drawImage(artwork, x - size * .78, cy - size * .78, size * 1.56, size * 1.56);
+  else ctx.fillText(icon, x, cy);
   ctx.shadowColor = "transparent";
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;

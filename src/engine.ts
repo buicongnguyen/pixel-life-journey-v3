@@ -64,6 +64,7 @@ import { createUI, type UIRefs } from "./ui";
 import { generateStory, type CauseOfEnd, type LifeStory } from "./story";
 import { linePool } from "./messages";
 import { chapterChallenge } from "./challenges";
+import { itemArtwork } from "./item-art";
 
 // Room dimensions are NOT fixed: they switch between a tall portrait shape and a
 // wide-short landscape shape (setRoomDims) so the playfield fills the screen in
@@ -1738,10 +1739,11 @@ export class Game {
   renderSnapshot() {
     return {
       width: W, height: H, stage: STAGES[this.stageIndex],
-      player: { x: this.px, y: this.py },
+      player: { x: this.px, y: this.py, gender: this.gender, age: this.age, facing: this.facing, moving: this.moving },
       door: { x: DOOR_X, y: this.zoneSplitY(), open: this.doorOpen() },
       stations: this.stations.map(st => ({
         id: st.opt.id, x: st.x, y: st.y, kind: st.kind, label: st.opt.label,
+        person: st.opt.person, category: st.opt.category,
         harmful: st.kind === "bad" || st.event?.good === false,
         inactive: st.satiated > 0 || (st.opt.once === true && this.usedOnce.has(st.opt.id)),
       })),
@@ -3923,7 +3925,7 @@ export class Game {
             seated: this.shouldSitWithNewborn(st),
           });
         } else {
-          drawStation(ctx, st.x, st.y, st.opt.icon, st.opt.label, st.opt.category, focused, used, t);
+          drawStation(ctx, st.x, st.y, st.opt.icon, st.opt.label, st.opt.category, focused, used, t, itemArtwork(st.opt.icon));
         }
         if (fadedSatiated) ctx.globalAlpha = 1;
       }

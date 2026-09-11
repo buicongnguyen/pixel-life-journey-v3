@@ -175,10 +175,12 @@ Try three distinct positive choices per chapter to earn a cosmetic **Chapter exp
 badge. The HUD suggests an untried choice and shows when the growth gate opens.
 Rewinding restores the progress along with your history.
 
-**Live 3D** opens an experimental companion view of the same simulation. You can
-orbit the scene and import a local Blender GLB as the player avatar while continuing
-to use the original game controls. It is a static-mesh prototype, not a complete 3D
-conversion. See [BLENDER.md](BLENDER.md) for export instructions and a starter script,
+**Live 3D** opens a furnished companion view with 18 original Blender-built models,
+textured PBR surfaces, reflections and soft shadows. Orbit, expand, follow the player,
+or import a local Blender avatar while continuing to use the original game controls.
+The normal Canvas game also displays Blender-rendered item sprites. The visual style
+is a detailed miniature world; it is not a full photorealistic 3D conversion.
+See [BLENDER.md](BLENDER.md) for editable source artwork and rebuild instructions,
 and [IMPROVEMENT_PLAN.md](IMPROVEMENT_PLAN.md) for the evaluation and roadmap.
 
 ## 📁 Project structure

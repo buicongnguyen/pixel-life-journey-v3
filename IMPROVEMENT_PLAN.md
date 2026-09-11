@@ -83,6 +83,22 @@ visibility fixes; preserve these and include them in regression validation.
 
 ## References
 
+### Completed visual follow-up
+
+The later realism request replaces the original primitive 3D placeholders with
+18 models generated and exported in Blender 4.5.9 LTS. The release includes the
+editable source, embedded textured PBR materials, furnished rooms, reflection
+lighting, soft shadows, expanded/follow cameras and 12 Cycles-rendered Canvas
+item sprites. See `BLENDER.md` for the executed build pipeline and art scope.
+
+Validation: 32 tests pass, including GLB integrity, embedded resources, normal
+attributes, geometry/size budgets, transparent sprites and item-to-model mapping.
+Production build passes. Browser review covered normal play, automatic 3D loading,
+expanded/follow cameras, shadow toggle and close/reopen; no console errors were
+observed. Full low-end/mobile FPS profiling and photorealistic character animation
+are not claimed. The earlier note that Blender was unavailable applies only to
+the initial prototype, not this follow-up.
+
 - [Blender GLB export](https://docs.blender.org/manual/en/4.2/addons/import_export/scene_gltf2.html)
 - [Three.js GLTFLoader](https://threejs.org/docs/pages/GLTFLoader.html)
 - [Three.js model loading](https://threejs.org/manual/en/loading-3d-models.html)

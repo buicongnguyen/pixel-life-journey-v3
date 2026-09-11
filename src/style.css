@@ -2124,15 +2124,32 @@ body {
 /* Companion renderer keeps the original game and touch controls available. */
 .plj-challenge { padding: 5px 8px; font: 12px/1.4 system-ui, sans-serif; color: #cfeadf; }
 .plj-view-toggle { border: 1px solid #6e98b0; border-radius: 8px; background: #22344a; color: #fff; padding: 5px 9px; cursor: pointer; white-space: nowrap; }
-.plj-3d { position: fixed; right: 12px; top: 12px; width: min(380px, 46vw); z-index: 80; background: #152033; color: #e5efff; border: 1px solid #7994bc; border-radius: 14px; box-shadow: 0 12px 50px #0008; padding: 12px; font: 12px/1.45 system-ui, sans-serif; }
+.plj-3d { position: fixed; right: 16px; top: 16px; width: min(580px, 47vw); max-height: calc(100dvh - 32px); overflow: auto; z-index: 80; background: #1c272b; color: #e6e5dc; border: 1px solid #65756d; border-radius: 16px; box-shadow: 0 20px 70px #0008; padding: 14px; font: 12px/1.45 system-ui, sans-serif; color-scheme: dark; }
 .plj-3d header { display: flex; justify-content: space-between; align-items: center; }
-.plj-3d button { background: #33445c; color: white; border: 0; border-radius: 6px; padding: 7px 12px; cursor: pointer; }
-.plj-3d-scene { height: 280px; margin-top: 8px; }
+.plj-3d header b { display:block; font: 25px/1.4 Georgia, serif; letter-spacing: -.5px; }
+.plj-3d header small { color:#b1b8a6; font-size:9px; letter-spacing:2px; }
+.plj-3d nav { display:flex; gap:6px; }
+.plj-3d button { background: #34433f; color: #eeeade; border: 1px solid #52625a; border-radius: 7px; padding: 7px 12px; cursor: pointer; }
+.plj-3d button:hover { background:#465a50; }
+.plj-3d-scene { height: min(48vh, 430px); margin-top: 12px; border-radius:10px; overflow:hidden; }
 .plj-3d-scene canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.plj-3d-caption { display:flex; justify-content:space-between; gap:12px; margin:12px 0; }
+.plj-3d-inspect { color:#b9c3b7; font-size:11px; text-align:right; }
+.plj-3d-toolbar { display:flex; gap:8px; }
+.plj-3d-help { color:#b5beb9; font-size:11px; }
+.plj-3d details { border-top:1px solid #40514a; padding-top:10px; margin-top:10px; }
+.plj-3d summary { cursor:pointer; color:#d4c7a6; }
 .plj-3d input { display: block; width: 100%; margin-top: 6px; }
+.plj-3d.is-expanded { width:calc(100vw - 32px); }
+.plj-3d.is-expanded .plj-3d-scene { height:calc(100dvh - 245px); min-height:180px; }
 @media (max-width: 700px) {
-  .plj-3d { top: 8px; right: 8px; width: 48vw; padding: 8px; }
-  .plj-3d-scene { height: 160px; }
+  .plj-3d { top: 8px; right: 8px; width: 57vw; padding: 8px; max-height:calc(100dvh - 100px); }
+  .plj-3d-scene { height: 210px; }
+  .plj-3d header b { font-size:18px; }
+  .plj-3d header small { display:none; }
+  .plj-3d button { padding:6px; font-size:10px; }
+  .plj-3d-caption { display:block; }
+  .plj-3d.is-expanded { width:calc(100vw - 16px); }
   .plj-3d p { font-size: 10px; margin: 5px 0; }
   .plj-challenge { font-size: 10px; }
 }

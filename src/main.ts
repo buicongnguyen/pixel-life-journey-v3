@@ -1,3 +1,4 @@
+import './mobile-game-init.mjs';
 import "./style.css";
 import { Game } from "./engine";
 

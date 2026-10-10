@@ -6120,6 +6120,8 @@ export class Game {
       this.actQueued = false;
     };
     window.addEventListener("blur", releaseKeys);
+window.addEventListener('pagehide', releaseKeys);
+window.addEventListener('mobile-game-interruption', releaseKeys);
     document.addEventListener("visibilitychange", () => { if (document.hidden) releaseKeys(); });
     this.ui.canvas.addEventListener("pointerdown", (e) => {
       if (this.mode !== "playing") return;

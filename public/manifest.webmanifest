@@ -1,0 +1,10 @@
+{
+  "name": "Pixel Life Journey v3",
+  "short_name": "Pixel Life Journey v3",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#172528",
+  "theme_color": "#172528"
+}

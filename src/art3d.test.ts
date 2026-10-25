@@ -1,9 +1,51 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import * as THREE from "three";
 import { readFileSync, readdirSync } from "node:fs";
-import { ART_KINDS, stationArt } from "./art3d";
+import { ART_KINDS, stationArt, createRoom } from "./art3d";
 
 const bytes = readFileSync(new URL("../public/models/life-art.glb", import.meta.url));
 const json = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString("utf8"));
+
+describe("static room batching", () => {
+  it("keeps all surfaces and materials while reducing meshes and disposing only owned assets", () => {
+    const context = { fillRect() {}, beginPath() {}, moveTo() {}, bezierCurveTo() {}, stroke() {} };
+    vi.stubGlobal("document", { createElement: () => ({ getContext: () => context }) });
+    const sharedGeometry = new THREE.BoxGeometry();
+    const sharedMaterial = new THREE.MeshStandardMaterial();
+    const sharedDispose = vi.spyOn(sharedGeometry, "dispose");
+    const sharedMaterialDispose = vi.spyOn(sharedMaterial, "dispose");
+    try {
+      const room = createRoom(10, 6, "nursery", {
+        create: () => new THREE.Group().add(new THREE.Mesh(sharedGeometry, sharedMaterial)),
+        dispose() {},
+      });
+      const surfaces = room.root.children[0].children as THREE.Mesh<THREE.BufferGeometry, THREE.MeshStandardMaterial>[];
+      expect(surfaces).toHaveLength(5);
+      expect(surfaces.reduce((n, mesh) => n + mesh.geometry.index!.count / 3, 0)).toBe(13 * 12);
+      expect(new Set(surfaces.map(mesh => mesh.material)).size).toBe(5);
+      for (const mesh of surfaces) {
+        expect(mesh.castShadow && mesh.receiveShadow).toBe(true);
+        expect(mesh.geometry.getAttribute("normal").count).toBe(mesh.geometry.getAttribute("position").count);
+        expect(mesh.geometry.getAttribute("uv").count).toBe(mesh.geometry.getAttribute("position").count);
+      }
+      const bounds = new THREE.Box3().setFromObject(room.root.children[0]);
+      expect(bounds.min.x).toBeCloseTo(-5.06);
+      expect(bounds.max.x).toBeCloseTo(5);
+      expect(bounds.min.y).toBeCloseTo(-.18);
+      expect(bounds.max.y).toBeCloseTo(1.55);
+      const ownedDisposals = surfaces.flatMap(mesh => [vi.spyOn(mesh.geometry, "dispose"), vi.spyOn(mesh.material, "dispose")]);
+      const textureDispose = vi.spyOn(surfaces.find(mesh => mesh.material.map)!.material.map!, "dispose");
+      room.dispose();
+      ownedDisposals.forEach(dispose => expect(dispose).toHaveBeenCalledOnce());
+      expect(textureDispose).toHaveBeenCalledOnce();
+      expect(sharedDispose).not.toHaveBeenCalled();
+      expect(sharedMaterialDispose).not.toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+      sharedGeometry.dispose(); sharedMaterial.dispose();
+    }
+  });
+});
 
 describe("shipped Blender artwork", () => {
   it("is a valid sized GLB with every required named asset", () => {

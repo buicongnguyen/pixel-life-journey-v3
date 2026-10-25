@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 export type ArtKind = "bottle" | "book" | "apple" | "burger" | "dumbbell" | "bed" | "laptop" | "teddy" | "money" | "plant" | "car" | "person" | "woman" | "child" | "baby" | "salad" | "sofa" | "desk";
 export const ART_KINDS: ArtKind[] = ["bottle", "book", "apple", "burger", "dumbbell", "bed", "laptop", "teddy", "money", "plant", "car", "person", "woman", "child", "baby", "salad", "sofa", "desk"];
@@ -109,9 +110,13 @@ export function createRoom(width: number, depth: number, kind: string, art: ArtL
   const wood = new THREE.MeshStandardMaterial({ map: floorTexture(), roughness: .72 });
   const plaster = new THREE.MeshStandardMaterial({ color: kind === "office" ? 0x7c9393 : kind === "nursery" ? 0xc9bcb2 : 0xaab5ad, roughness: .94 });
   const trim = new THREE.MeshStandardMaterial({ color: 0xe7dcc9, roughness: .5 });
+  // These boxes are static, opaque and have identical shadow settings. Batch only
+  // exact material matches: keep their UVs, normals, PBR finishes and all triangles.
+  const surfaces = new Map<THREE.Material, THREE.BufferGeometry[]>();
   const box = (w: number, h: number, d: number, x: number, y: number, z: number, mat: THREE.Material) => {
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-    mesh.position.set(x,y,z); mesh.receiveShadow = true; mesh.castShadow = true; owned.add(mesh);return mesh;
+    const geometry = new THREE.BoxGeometry(w, h, d).translate(x, y, z);
+    const parts = surfaces.get(mat) ?? [];
+    parts.push(geometry); surfaces.set(mat, parts);
   };
   box(width,.16,depth,0,-.10,0,wood);
   box(width,.14,.12,0,.05,-depth/2,trim);
@@ -125,6 +130,16 @@ export function createRoom(width: number, depth: number, kind: string, art: ArtL
   for (const y of [.36,.92,1.48]) box(1.8,.045,.07,0,y,-depth/2+.11,trim);
   const rug = new THREE.MeshStandardMaterial({ color: kind === "nursery" ? 0x667d7a : 0x786957, roughness: 1 });
   box(width*.50,.015,depth*.32,.25,0,depth*.17,rug);
+  for (const [material, parts] of surfaces) {
+    // Box geometries have matching attributes. Keep an unmerged fallback if that
+    // changes; never omit room surfaces after a failed merge.
+    const merged = parts.length > 1 ? mergeGeometries(parts) : null;
+    for (const geometry of merged ? [merged] : parts) {
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.receiveShadow = true; mesh.castShadow = true; owned.add(mesh);
+    }
+    if (merged) parts.forEach(geometry => geometry.dispose());
+  }
   const furniture: THREE.Object3D[] = [];
   const place = (key: ArtKind, height: number, x: number, z: number, rotation = 0) => {
     const model=art.create(key,height);model.position.set(x,0,z);model.rotation.y=rotation;root.add(model);furniture.push(model);return model;

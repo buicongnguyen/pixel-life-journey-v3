@@ -4,6 +4,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { createRoom, disposeArt, loadArt, stationArt, type ArtKind } from "./art3d";
 import type { Game } from "./engine";
+import { cacheTransforms } from "./transform-cache";
 
 /** Blender artwork is presentation-only: the original simulation owns every action. */
 export async function open3D(game: Game, onClose: () => void) {
@@ -37,6 +38,12 @@ export async function open3D(game: Game, onClose: () => void) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   viewport.append(renderer.domElement); document.body.append(panel);
   const scene = new THREE.Scene();
+  // This root always has the identity transform. Avoid forcing every descendant
+  // to recompute world matrices when nothing in the room has moved.
+  scene.matrixAutoUpdate = false;
+  renderer.shadowMap.autoUpdate = false;
+  const invalidateShadows = () => { renderer.shadowMap.needsUpdate = true; };
+  invalidateShadows();
   const pmrem = new THREE.PMREMGenerator(renderer);
   const studio = new RoomEnvironment();
   const environment = pmrem.fromScene(studio, .04);
@@ -58,6 +65,7 @@ export async function open3D(game: Game, onClose: () => void) {
   scene.add(sun);
   const fill = new THREE.DirectionalLight(0xbed7ff,.8);fill.position.set(6,4,-3);scene.add(fill);
   const avatar = new THREE.Group();scene.add(avatar);
+  cacheTransforms(avatar, invalidateShadows);
   let defaultAvatar: THREE.Object3D | undefined;
   let avatarKind = "";
   let imported: THREE.Object3D | undefined;
@@ -70,6 +78,7 @@ export async function open3D(game: Game, onClose: () => void) {
   const lintel=new THREE.Mesh(new THREE.BoxGeometry(.61,.075,.09),gateMat);lintel.position.y=.95;gate.add(lintel);
   const threshold=new THREE.Mesh(new THREE.BoxGeometry(.59,.025,.22),gateGlow);threshold.position.y=.02;gate.add(threshold);
   scene.add(gate);
+  cacheTransforms(gate, invalidateShadows);
   type StationView = { root: THREE.Group; marker: THREE.Mesh<THREE.RingGeometry, THREE.MeshBasicMaterial>; label: string };
   const stations = new Map<string,StationView>();
   let room: ReturnType<typeof createRoom> | undefined;
@@ -88,6 +97,7 @@ export async function open3D(game: Game, onClose: () => void) {
   });resize.observe(viewport);
   const removeStation=(view:StationView)=> {
     scene.remove(view.root);view.marker.geometry.dispose();view.marker.material.dispose();
+    invalidateShadows();
     // Model resources belong to the shared library, not the clone.
   };
   const clock=new THREE.Clock();
@@ -101,6 +111,7 @@ export async function open3D(game: Game, onClose: () => void) {
     if(key!==roomKey) {
       if(room){scene.remove(room.root);room.dispose();}
       room=createRoom(s.width*scale,s.height*scale,s.stage.scene,art);scene.add(room.root);roomKey=key;
+      cacheTransforms(room.root, invalidateShadows); invalidateShadows();
       caption.textContent=s.stage.name;
     }
     const playerKind:ArtKind=s.player.age<3?"baby":s.player.age<12?"child":s.player.gender==="female"?"woman":"person";
@@ -109,6 +120,7 @@ export async function open3D(game: Game, onClose: () => void) {
       if(defaultAvatar)avatar.remove(defaultAvatar);
       defaultAvatar=art.create(playerKind,s.player.age<3?.58:s.player.age<12?.75:1.05);
       defaultAvatar.visible=!imported;avatar.add(defaultAvatar);avatarKind=playerKey;
+      cacheTransforms(defaultAvatar, invalidateShadows); invalidateShadows();
     }
     place(avatar,s.player.x,s.player.y);
     avatar.position.y=s.player.moving?Math.abs(Math.sin(t*10))*.018:0;
@@ -129,6 +141,7 @@ export async function open3D(game: Game, onClose: () => void) {
         const marker=new THREE.Mesh(new THREE.RingGeometry(human?.22:.20,human?.25:.23,40),new THREE.MeshBasicMaterial({color:st.harmful?0xdc7463:human?0x94aeca:0x77b598,transparent:true,opacity:.65,side:THREE.DoubleSide,depthWrite:false}));
         marker.rotation.x=-Math.PI/2;marker.position.y=.018;
         root.add(model,marker);root.userData.label=st.label;scene.add(root);
+        cacheTransforms(root, invalidateShadows); invalidateShadows();
         view={root,marker,label:st.label};stations.set(id,view);
       }
       place(view.root,st.x,st.y);
@@ -148,6 +161,9 @@ export async function open3D(game: Game, onClose: () => void) {
       while(object&&!object.userData.label)object=object.parent??undefined;
       inspect.textContent=object?.userData.label??"Drag to orbit · scroll to inspect the details";
     }
+    // Imported hierarchies can contain custom/skinned transforms: retain their
+    // normal updates and shadow cadence rather than imposing the built-in cache.
+    if(imported) invalidateShadows();
     renderer.render(scene,camera);
   });
   panel.querySelector<HTMLButtonElement>(".plj-3d-camera")!.onclick=e=> {
@@ -158,6 +174,7 @@ export async function open3D(game: Game, onClose: () => void) {
   };
   panel.querySelector<HTMLButtonElement>(".plj-3d-quality")!.onclick=e=>{
     renderer.shadowMap.enabled=!renderer.shadowMap.enabled;
+    invalidateShadows();
     (e.currentTarget as HTMLButtonElement).textContent=`Soft shadows: ${renderer.shadowMap.enabled?"on":"off"}`;
   };
   panel.querySelector<HTMLButtonElement>(".plj-3d-expand")!.onclick=e=>{
@@ -184,7 +201,7 @@ export async function open3D(game: Game, onClose: () => void) {
   const close=()=>{
     if(closed)return;closed=true;generation++;renderer.setAnimationLoop(null);resize.disconnect();controls.dispose();
     for(const view of stations.values())removeStation(view);
-    room?.dispose();if(imported)disposeArt(imported);disposeArt(gate);art.dispose();environment.dispose();
+    room?.dispose();if(imported)disposeArt(imported);disposeArt(gate);art.dispose();environment.dispose();sun.shadow.dispose();
     renderer.dispose();renderer.forceContextLoss();panel.remove();onClose();
   };
   panel.querySelector<HTMLButtonElement>(".plj-3d-close")!.onclick=close;
